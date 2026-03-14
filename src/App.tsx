@@ -51,7 +51,7 @@ export default function App() {
   const [characteristics, setCharacteristics] = useState<Characteristic[]>([
     { id: 'c1', text: 'Peso', direction: 'min', unit: 'kg', targetValue: '< 2.5' },
     { id: 'c2', text: 'Resistencia material', direction: 'max', unit: 'MPa', targetValue: '> 250' },
-    { id: 'c3', text: 'Costo de producción', direction: 'min', unit: 'USD', targetValue: '< 15' },
+    { id: 'c3', text: 'Costo de producción', direction: 'min', unit: '$', targetValue: '< 60.000' },
   ]);
 
   const [relationships, setRelationships] = useState<Relationship[]>([
