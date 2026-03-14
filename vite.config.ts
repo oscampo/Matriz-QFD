@@ -4,9 +4,10 @@ import path from 'path';
 import {defineConfig, loadEnv} from 'vite';
 
 export default defineConfig(({mode}) => {
-  base: '/Matriz-QFD/',
+  
   const env = loadEnv(mode, '.', '');
   return {
+    base: '/Matriz-QFD/',
     plugins: [react(), tailwindcss()],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
