@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { Plus, Trash2, ArrowUp, ArrowDown, Target, Download, Upload, Info, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, ArrowUp, ArrowDown, Target, Download, Upload, Info, Image as ImageIcon, AlertTriangle } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 
 type Requirement = {
@@ -75,6 +75,8 @@ export default function App() {
     { reqId: 'r1', compId: 'comp2', value: 3 },
   ]);
 
+  const [itemToDelete, setItemToDelete] = useState<{type: 'req' | 'char', id: string, name: string} | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const matrixRef = useRef<HTMLDivElement>(null);
 
@@ -86,10 +88,8 @@ export default function App() {
     setRequirements(requirements.map(r => r.id === id ? { ...r, [field]: value } : r));
   };
 
-  const deleteRequirement = (id: string) => {
-    setRequirements(requirements.filter(r => r.id !== id));
-    setRelationships(relationships.filter(r => r.reqId !== id));
-    setAssessments(assessments.filter(a => a.reqId !== id));
+  const requestDeleteRequirement = (id: string, name: string) => {
+    setItemToDelete({ type: 'req', id, name });
   };
 
   const addCharacteristic = () => {
@@ -100,9 +100,22 @@ export default function App() {
     setCharacteristics(characteristics.map(c => c.id === id ? { ...c, [field]: value } : c));
   };
 
-  const deleteCharacteristic = (id: string) => {
-    setCharacteristics(characteristics.filter(c => c.id !== id));
-    setRelationships(relationships.filter(r => r.charId !== id));
+  const requestDeleteCharacteristic = (id: string, name: string) => {
+    setItemToDelete({ type: 'char', id, name });
+  };
+
+  const confirmDelete = () => {
+    if (!itemToDelete) return;
+    if (itemToDelete.type === 'req') {
+      setRequirements(requirements.filter(r => r.id !== itemToDelete.id));
+      setRelationships(relationships.filter(r => r.reqId !== itemToDelete.id));
+      setAssessments(assessments.filter(a => a.reqId !== itemToDelete.id));
+    } else {
+      setCharacteristics(characteristics.filter(c => c.id !== itemToDelete.id));
+      setRelationships(relationships.filter(r => r.charId !== itemToDelete.id));
+      setCrossRelationships(crossRelationships.filter(r => r.charId1 !== itemToDelete.id && r.charId2 !== itemToDelete.id));
+    }
+    setItemToDelete(null);
   };
 
   const toggleDirection = (id: string) => {
@@ -269,18 +282,6 @@ export default function App() {
             <h1 className="text-3xl font-bold text-slate-800">Matriz QFD</h1>
             <p className="text-slate-500">Despliegue de la Función de Calidad (Casa de la Calidad)</p>
           </div>
-          <div className="flex gap-2">
-            <input type="file" accept=".json" className="hidden" ref={fileInputRef} onChange={importData} />
-            <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 shadow-sm transition-colors">
-              <Upload size={18} /> JSON
-            </button>
-            <button onClick={exportData} className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 shadow-sm transition-colors">
-              <Download size={18} /> JSON
-            </button>
-            <button onClick={exportImage} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors">
-              <ImageIcon size={18} /> Imagen
-            </button>
-          </div>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
@@ -332,24 +333,24 @@ export default function App() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
             <div ref={matrixRef} className="bg-white inline-block min-w-full p-2">
-              <table className="w-full min-w-max border-collapse text-sm table-fixed">
+              <table className="w-max border-collapse text-sm table-fixed">
                 <colgroup>
-                <col className="w-64" />
-                <col className="w-20" />
+                <col style={{ width: '256px', minWidth: '256px' }} />
+                <col style={{ width: '80px', minWidth: '80px' }} />
                 {characteristics.map(c => (
-                  <col key={`col-${c.id}`} className="w-[64px]" />
+                  <col key={`col-${c.id}`} style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }} />
                 ))}
                 {competitors.map(comp => (
-                  <col key={`col-comp-${comp.id}`} className="w-24" />
+                  <col key={`col-comp-${comp.id}`} style={{ width: '96px', minWidth: '96px' }} />
                 ))}
               </colgroup>
               <thead>
                 {characteristics.length > 1 && (
                   <tr>
-                    <th colSpan={2} className="border-b border-r border-slate-200 bg-slate-50"></th>
-                    <th colSpan={characteristics.length} className="bg-slate-50 relative p-0 border-b border-r border-slate-200 align-bottom">
-                      <div className="w-full flex justify-center overflow-hidden">
-                        <svg width={characteristics.length * 64} height={characteristics.length * 32} className="block">
+                    <th colSpan={2} className="border-b border-r border-slate-200 bg-slate-50" style={{ width: '336px', minWidth: '336px', maxWidth: '336px' }}></th>
+                    <th colSpan={characteristics.length} className="bg-slate-50 relative p-0 border-b border-r border-slate-200 align-bottom" style={{ width: `${characteristics.length * 64}px`, minWidth: `${characteristics.length * 64}px`, maxWidth: `${characteristics.length * 64}px` }}>
+                      <div className="w-full overflow-hidden leading-none flex justify-start">
+                        <svg width={characteristics.length * 64} height={characteristics.length * 32} className="block" style={{ margin: 0 }}>
                           {Array.from({ length: characteristics.length }).map((_, i) => {
                             return Array.from({ length: characteristics.length }).map((_, j) => {
                               if (i >= j) return null;
@@ -394,7 +395,7 @@ export default function App() {
                 <tr>
                   <th colSpan={2} className="border-b border-r border-slate-200 p-2 bg-slate-50"></th>
                   {characteristics.map(c => (
-                    <th key={`dir-${c.id}`} className="border-b border-r border-slate-200 p-1 bg-slate-50 text-center">
+                    <th key={`dir-${c.id}`} className="border-b border-r border-slate-200 p-1 bg-slate-50 text-center" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
                       <button onClick={() => toggleDirection(c.id)} className="p-1.5 hover:bg-slate-200 rounded-md transition-colors" title="Cambiar dirección de mejora">
                         {c.direction === 'max' && <ArrowUp size={16} className="text-emerald-600 mx-auto" />}
                         {c.direction === 'min' && <ArrowDown size={16} className="text-rose-600 mx-auto" />}
@@ -420,14 +421,14 @@ export default function App() {
                   </th>
                   <th className="border-b border-r border-slate-200 p-3 bg-slate-50 text-center w-20 font-semibold text-slate-700 align-bottom" title="Importancia (1-5)">Imp.</th>
                   {characteristics.map(c => (
-                    <th key={`head-${c.id}`} className="border-b border-r border-slate-200 p-2 bg-white h-48 align-bottom group relative">
+                    <th key={`head-${c.id}`} className="border-b border-r border-slate-200 p-2 bg-white h-48 align-bottom group relative" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
                       <div className="flex flex-col items-center justify-end h-full w-10 mx-auto">
                         <input
                           value={c.text}
                           onChange={e => updateCharacteristic(c.id, 'text', e.target.value)}
                           className="[writing-mode:vertical-rl] rotate-180 bg-transparent text-sm font-medium focus:outline-none text-center w-full text-slate-700"
                         />
-                        <button onClick={() => deleteCharacteristic(c.id)} className="mt-3 text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => requestDeleteCharacteristic(c.id, c.text)} title="Eliminar CÓMO" className="mt-3 text-slate-400 hover:text-rose-500 transition-colors">
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -454,7 +455,7 @@ export default function App() {
                   <tr key={req.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="border-b border-r border-slate-200 p-2 bg-white">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => deleteRequirement(req.id)} className="text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => requestDeleteRequirement(req.id, req.text)} title="Eliminar QUÉ" className="text-slate-400 hover:text-rose-500 transition-colors">
                           <Trash2 size={14} />
                         </button>
                         <input
@@ -482,6 +483,7 @@ export default function App() {
                         <td
                           key={`rel-${req.id}-${c.id}`}
                           className="border-b border-r border-slate-200 p-0 text-center cursor-pointer hover:bg-blue-50 transition-colors bg-white"
+                          style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}
                           onClick={() => cycleRelationship(req.id, c.id)}
                         >
                           <div className="w-full h-10 flex items-center justify-center font-bold select-none text-slate-800">
@@ -512,7 +514,7 @@ export default function App() {
                 <tr>
                   <td colSpan={2} className="border-b border-r border-slate-200 p-3 bg-slate-50 text-right font-semibold text-slate-600">Valores Objetivo</td>
                   {characteristics.map(c => (
-                    <td key={`target-${c.id}`} className="border-b border-r border-slate-200 p-2 bg-white text-center">
+                    <td key={`target-${c.id}`} className="border-b border-r border-slate-200 p-2 bg-white text-center" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
                       <input
                         value={c.targetValue || ''}
                         onChange={e => updateCharacteristic(c.id, 'targetValue', e.target.value)}
@@ -526,7 +528,7 @@ export default function App() {
                 <tr>
                   <td colSpan={2} className="border-b border-r border-slate-200 p-3 bg-slate-50 text-right font-semibold text-slate-600">Unidades de Medida</td>
                   {characteristics.map(c => (
-                    <td key={`unit-${c.id}`} className="border-b border-r border-slate-200 p-2 bg-white text-center">
+                    <td key={`unit-${c.id}`} className="border-b border-r border-slate-200 p-2 bg-white text-center" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
                       <input
                         value={c.unit}
                         onChange={e => updateCharacteristic(c.id, 'unit', e.target.value)}
@@ -540,7 +542,7 @@ export default function App() {
                 <tr>
                   <td colSpan={2} className="border-b border-r border-slate-200 p-3 bg-slate-100 text-right font-bold text-slate-700">Importancia Absoluta</td>
                   {characteristics.map(c => (
-                    <td key={`abs-${c.id}`} className="border-b border-r border-slate-200 p-3 text-center font-bold text-slate-800 bg-slate-50">
+                    <td key={`abs-${c.id}`} className="border-b border-r border-slate-200 p-3 text-center font-bold text-slate-800 bg-slate-50" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
                       {calculatedImportance[c.id]?.absolute || 0}
                     </td>
                   ))}
@@ -549,7 +551,7 @@ export default function App() {
                 <tr>
                   <td colSpan={2} className="border-r border-slate-200 p-3 bg-slate-100 text-right font-bold text-slate-700">Importancia Relativa (%)</td>
                   {characteristics.map(c => (
-                    <td key={`rel-${c.id}`} className="border-r border-slate-200 p-3 text-center font-bold text-blue-600 bg-slate-50">
+                    <td key={`rel-${c.id}`} className="border-r border-slate-200 p-3 text-center font-bold text-blue-600 bg-slate-50" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
                       {((calculatedImportance[c.id]?.relative || 0) * 100).toFixed(1)}%
                     </td>
                   ))}
@@ -561,11 +563,25 @@ export default function App() {
           </div>
         </div>
         
+        <div className="mt-6 flex flex-wrap justify-end gap-3">
+          <input type="file" accept=".json" className="hidden" ref={fileInputRef} onChange={importData} />
+          <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 shadow-sm transition-colors">
+            <Upload size={18} /> Cargar JSON
+          </button>
+          <button onClick={exportData} className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 shadow-sm transition-colors">
+            <Download size={18} /> Descargar JSON
+          </button>
+          <button onClick={exportImage} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors">
+            <ImageIcon size={18} /> Descargar Imagen
+          </button>
+        </div>
+
         <div className="mt-8 bg-blue-50 rounded-xl p-6 border border-blue-100 flex gap-4 items-start">
           <Info className="text-blue-500 shrink-0 mt-1" />
-          <div className="text-sm text-blue-900">
-            <h3 className="font-bold text-base mb-2">¿Cómo usar esta matriz QFD?</h3>
-            <ul className="list-disc pl-5 space-y-1">
+          <div className="text-sm text-blue-900 w-full">
+            <h3 className="font-bold text-base mb-3">¿Cómo usar esta matriz QFD?</h3>
+            
+            <ul className="list-disc pl-5 space-y-2 mb-4">
               <li><strong>¡Todo es editable!:</strong> Haz clic o toca directamente sobre cualquier texto (requerimientos, características, competidores) o número para modificarlo. Los datos actuales son solo un ejemplo.</li>
               <li><strong>QUÉ (Requerimientos del Cliente):</strong> Lista lo que el cliente desea. Asigna una importancia del 1 al 5.</li>
               <li><strong>CÓMO (Requerimientos Técnicos):</strong> Lista cómo vas a satisfacer esos requerimientos mediante especificaciones técnicas.</li>
@@ -574,6 +590,13 @@ export default function App() {
               <li><strong>Dirección de Mejora:</strong> Haz clic en los íconos superiores para indicar si la característica técnica debe maximizarse (↑), minimizarse (↓) o alcanzar un objetivo específico (◎).</li>
               <li><strong>Evaluación Competitiva:</strong> Califica del 1 al 5 cómo se percibe tu producto frente a la competencia para cada requerimiento.</li>
             </ul>
+
+            <div className="bg-white/60 p-4 rounded-lg border border-blue-200 shadow-sm flex gap-3 items-start">
+              <span className="text-xl leading-none">💡</span>
+              <p className="leading-relaxed">
+                <strong>Tip:</strong> Cuando trabajes en tu matriz, puedes descargar la versión <strong>.json</strong>. Cuando quieras volver a trabajar sobre ella o compartirla con un colega, ¡simplemente debes cargarla y seguir editando! Descarga la <strong>imagen</strong> para usarla en la documentación de tu proyecto.
+              </p>
+            </div>
           </div>
         </div>
 
@@ -588,6 +611,38 @@ export default function App() {
           </p>
         </footer>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {itemToDelete && (
+        <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center gap-3 text-rose-600 mb-4">
+              <AlertTriangle size={24} />
+              <h3 className="text-lg font-bold text-slate-900">Confirmar eliminación</h3>
+            </div>
+            <p className="text-slate-600 mb-4">
+              ¿Estás seguro de que deseas eliminar el {itemToDelete.type === 'req' ? 'requerimiento' : 'CÓMO'} <strong>"{itemToDelete.name}"</strong>?
+            </p>
+            <div className="bg-rose-50 text-rose-800 text-sm p-4 rounded-lg mb-6 border border-rose-100">
+              <strong>Advertencia:</strong> Esta acción eliminará toda la {itemToDelete.type === 'req' ? 'fila' : 'columna'} y <strong>todas las relaciones</strong> asociadas a este elemento{itemToDelete.type === 'char' ? ', incluyendo las relaciones cruzadas en el techo' : ''}. Esta acción no se puede deshacer.
+            </div>
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setItemToDelete(null)}
+                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-medium transition-colors shadow-sm"
+              >
+                Sí, eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
