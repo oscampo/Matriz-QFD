@@ -1,21 +1,15 @@
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite'; // <--- IMPORTANTE
+import tailwindcss from '@tailwindcss/vite'; // ¡Indispensable para que se vea bien!
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, '.', '');
-  return {
-    base: '/Matriz-QFD/',
-    plugins: [
-      react(),
-      tailwindcss(), // <--- IMPORTANTE
-    ],
-    define: {
-      'process.env.GEMINI_API_KEY': JSON.stringify(process.env.GEMINI_API_KEY || env.GEMINI_API_KEY || ''),
-    },
-    // Añadimos esto para asegurar que el CSS se extraiga correctamente
-    css: {
-      postcss: './postcss.config.js', 
-    }
-  };
+export default defineConfig({
+  base: '/Matriz-QFD/',
+  plugins: [
+    react(),
+    tailwindcss(), // ¡Indispensable para que se vea bien!
+  ],
+  // Hemos eliminado toda la parte de la IA (define y loadEnv)
+  css: {
+    postcss: './postcss.config.js', 
+  }
 });
