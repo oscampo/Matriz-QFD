@@ -242,6 +242,49 @@ export default function App() {
     }, {} as Record<string, { absolute: number, relative: number }>);
   }, [requirements, characteristics, relationships]);
 
+  const relativeImportanceStats = useMemo(() => {
+    const values = Object.values(calculatedImportance).map((v: any) => v.relative);
+    if (values.length === 0) return { min: 0, max: 0, median: 0 };
+    
+    const sorted = [...values].sort((a, b) => a - b);
+    const min = sorted[0];
+    const max = sorted[sorted.length - 1];
+    const median = sorted[Math.floor(sorted.length / 2)];
+    
+    return { min, max, median };
+  }, [calculatedImportance]);
+
+  const getRelativeColor = (value: number) => {
+    const { min, max, median } = relativeImportanceStats;
+    if (min === max) return '#FFEB84';
+
+    const interpolate = (color1: string, color2: string, factor: number) => {
+      const r1 = parseInt(color1.substring(1, 3), 16);
+      const g1 = parseInt(color1.substring(3, 5), 16);
+      const b1 = parseInt(color1.substring(5, 7), 16);
+
+      const r2 = parseInt(color2.substring(1, 3), 16);
+      const g2 = parseInt(color2.substring(3, 5), 16);
+      const b2 = parseInt(color2.substring(5, 7), 16);
+
+      const r = Math.round(r1 + factor * (r2 - r1));
+      const g = Math.round(g1 + factor * (g2 - g1));
+      const b = Math.round(b1 + factor * (b2 - b1));
+
+      return `rgb(${r}, ${g}, ${b})`;
+    };
+
+    if (value <= median) {
+      const range = median - min;
+      const factor = range === 0 ? 0 : (value - min) / range;
+      return interpolate('#F8696B', '#FFEB84', factor);
+    } else {
+      const range = max - median;
+      const factor = range === 0 ? 0 : (value - median) / range;
+      return interpolate('#FFEB84', '#63BE7B', factor);
+    }
+  };
+
   const exportData = () => {
     const data = { requirements, characteristics, relationships, crossRelationships, competitors, assessments };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -636,11 +679,23 @@ export default function App() {
                 </tr>
                 <tr>
                   <td colSpan={2} className="border-r border-slate-200 p-3 bg-slate-100 text-right font-bold text-slate-700">Importancia Relativa (%)</td>
-                  {characteristics.map(c => (
-                    <td key={`rel-${c.id}`} className="border-r border-slate-200 p-3 text-center font-bold text-blue-600 bg-slate-50" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
-                      {((calculatedImportance[c.id]?.relative || 0) * 100).toFixed(1)}%
-                    </td>
-                  ))}
+                  {characteristics.map(c => {
+                    const relValue = calculatedImportance[c.id]?.relative || 0;
+                    return (
+                      <td 
+                        key={`rel-${c.id}`} 
+                        className="border-r border-slate-200 p-3 text-center text-black" 
+                        style={{ 
+                          width: '64px', 
+                          minWidth: '64px', 
+                          maxWidth: '64px',
+                          backgroundColor: getRelativeColor(relValue)
+                        }}
+                      >
+                        {(relValue * 100).toFixed(1)}%
+                      </td>
+                    );
+                  })}
                   <td colSpan={competitors.length + 1} className="bg-slate-100"></td>
                 </tr>
               </tfoot>
