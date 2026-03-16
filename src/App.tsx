@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Plus, Trash2, ArrowUp, ArrowDown, Target, Download, Upload, Info, Image as ImageIcon, AlertTriangle } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 
@@ -51,7 +51,7 @@ export default function App() {
   const [characteristics, setCharacteristics] = useState<Characteristic[]>([
     { id: 'c1', text: 'Peso', direction: 'min', unit: 'kg', targetValue: '< 2.5' },
     { id: 'c2', text: 'Resistencia material', direction: 'max', unit: 'MPa', targetValue: '> 250' },
-    { id: 'c3', text: 'Costo de producción', direction: 'min', unit: '$', targetValue: '< 60.000' },
+    { id: 'c3', text: 'Costo de producción', direction: 'min', unit: 'USD', targetValue: '< 15' },
   ]);
 
   const [relationships, setRelationships] = useState<Relationship[]>([
@@ -79,6 +79,18 @@ export default function App() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const matrixRef = useRef<HTMLDivElement>(null);
+
+  const getHeatmapColor = (value: number | null | undefined) => {
+    if (!value) return 'bg-white';
+    switch (value) {
+      case 1: return 'bg-rose-100 text-rose-900';
+      case 2: return 'bg-orange-100 text-orange-900';
+      case 3: return 'bg-yellow-100 text-yellow-900';
+      case 4: return 'bg-lime-100 text-lime-900';
+      case 5: return 'bg-emerald-100 text-emerald-900';
+      default: return 'bg-white';
+    }
+  };
 
   const addRequirement = () => {
     setRequirements([...requirements, { id: generateId(), text: 'Nuevo Requerimiento', importance: 3 }]);
@@ -196,6 +208,11 @@ export default function App() {
         return [...prev, { reqId, compId, value }];
       }
     });
+  };
+
+  const getCompColor = (index: number) => {
+    const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
+    return colors[index % colors.length];
   };
 
   const calculatedImportance = useMemo(() => {
@@ -389,7 +406,7 @@ export default function App() {
                         </svg>
                       </div>
                     </th>
-                    <th colSpan={competitors.length} className="border-b border-slate-200 bg-slate-50"></th>
+                    <th colSpan={competitors.length + 1} className="border-b border-slate-200 bg-slate-50"></th>
                   </tr>
                 )}
                 <tr>
@@ -403,8 +420,11 @@ export default function App() {
                       </button>
                     </th>
                   ))}
-                  <th colSpan={competitors.length} className="border-b border-slate-200 p-2 bg-slate-50 text-center font-semibold text-slate-600">
+                  <th colSpan={competitors.length} className="border-b border-r border-slate-200 p-2 bg-slate-50 text-center font-semibold text-slate-600">
                     Evaluación Competitiva (1-5)
+                  </th>
+                  <th className="border-b border-slate-200 p-2 bg-slate-50 text-center font-semibold text-slate-600 w-[250px]">
+                    Perfil Competitivo
                   </th>
                 </tr>
                 <tr>
@@ -434,9 +454,12 @@ export default function App() {
                       </div>
                     </th>
                   ))}
-                  {competitors.map(comp => (
-                    <th key={`comp-${comp.id}`} className="border-b border-r last:border-r-0 border-slate-200 p-2 bg-slate-50 text-center w-12 align-bottom group relative">
+                  {competitors.map((comp, idx) => (
+                    <th key={`comp-${comp.id}`} className="border-b border-r border-slate-200 p-2 bg-slate-50 text-center w-12 align-bottom group relative">
                       <div className="flex flex-col items-center justify-end h-full w-full mx-auto">
+                        <div className="flex items-center gap-1 mb-1">
+                          <div className={`w-2 h-2 ${comp.name === 'Nuestro' ? 'clip-triangle' : 'rounded-full'}`} style={{ backgroundColor: getCompColor(idx) }}></div>
+                        </div>
                         <input
                           value={comp.name}
                           onChange={e => updateCompetitor(comp.id, e.target.value)}
@@ -448,11 +471,30 @@ export default function App() {
                       </div>
                     </th>
                   ))}
+                  <th className="border-b border-slate-200 bg-slate-50 w-[250px] align-bottom p-0">
+                    <div className="flex flex-col h-full">
+                      <div className="flex flex-wrap gap-2 p-2 text-[10px] text-slate-500 font-normal justify-center border-b border-slate-200">
+                        {competitors.map((comp, idx) => (
+                          <div key={comp.id} className="flex items-center gap-1">
+                            <div className={`w-2 h-2 ${comp.name === 'Nuestro' ? 'clip-triangle' : 'rounded-full'}`} style={{ backgroundColor: getCompColor(idx) }}></div>
+                            <span className="truncate max-w-[60px]">{comp.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex w-full flex-1">
+                        {[1, 2, 3, 4, 5].map(num => (
+                          <div key={`scale-${num}`} className="flex-1 flex flex-col justify-end items-center pb-2 border-r border-slate-200 last:border-r-0">
+                            <span className="text-xs font-bold text-slate-500">{num}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {requirements.map(req => (
-                  <tr key={req.id} className="hover:bg-slate-50/50 transition-colors group">
+                {requirements.map((req, index) => (
+                  <tr key={req.id} className="hover:bg-slate-50/50 transition-colors group h-12">
                     <td className="border-b border-r border-slate-200 p-2 bg-white">
                       <div className="flex items-center gap-2">
                         <button onClick={() => requestDeleteRequirement(req.id, req.text)} title="Eliminar QUÉ" className="text-slate-400 hover:text-rose-500 transition-colors">
@@ -461,7 +503,7 @@ export default function App() {
                         <input
                           value={req.text}
                           onChange={e => updateRequirement(req.id, 'text', e.target.value)}
-                          className="w-full bg-transparent focus:outline-none text-slate-700"
+                          className="w-full bg-transparent focus:outline-none text-slate-700 truncate"
                           placeholder="Requerimiento..."
                         />
                       </div>
@@ -495,18 +537,62 @@ export default function App() {
                     {competitors.map(comp => {
                       const ass = assessments.find(a => a.reqId === req.id && a.compId === comp.id);
                       return (
-                        <td key={`ass-${req.id}-${comp.id}`} className="border-b border-r last:border-r-0 border-slate-200 p-1 bg-white">
+                        <td key={`ass-${req.id}-${comp.id}`} className={`border-b border-r border-slate-200 p-1 transition-colors ${getHeatmapColor(ass?.value)}`}>
                           <input
                             type="number"
                             min="1"
                             max="5"
                             value={ass ? ass.value : ''}
                             onChange={e => updateAssessment(req.id, comp.id, parseInt(e.target.value) || 0)}
-                            className="w-full h-8 bg-transparent focus:outline-none text-center text-slate-700"
+                            className="w-full h-8 bg-transparent focus:outline-none text-center font-bold"
                           />
                         </td>
                       );
                     })}
+                    {index === 0 && (
+                      <td rowSpan={requirements.length} className="border-b border-slate-200 p-0 bg-white relative align-top" style={{ width: '250px', minWidth: '250px' }}>
+                        <svg width="250" height={requirements.length * 48} className="absolute top-0 left-0">
+                          {/* Vertical Grid Lines */}
+                          {[25, 75, 125, 175, 225].map(x => (
+                            <line key={`v-${x}`} x1={x} y1={0} x2={x} y2={requirements.length * 48} stroke="#e2e8f0" strokeDasharray="4 4" />
+                          ))}
+                          {/* Horizontal Grid Lines */}
+                          {requirements.map((_, i) => (
+                            <line key={`h-${i}`} x1={0} y1={(i + 1) * 48} x2={250} y2={(i + 1) * 48} stroke="#e2e8f0" />
+                          ))}
+
+                          {/* Lines for each competitor */}
+                          {competitors.map((comp, cIdx) => {
+                            const points = requirements.map((r, rIdx) => {
+                              const ass = assessments.find(a => a.reqId === r.id && a.compId === comp.id);
+                              if (!ass || !ass.value) return null;
+                              const x = 25 + (ass.value - 1) * 50;
+                              const y = rIdx * 48 + 24;
+                              return `${x},${y}`;
+                            }).filter(Boolean).join(' L ');
+
+                            if (!points) return null;
+
+                            return (
+                              <g key={`line-${comp.id}`}>
+                                <path d={`M ${points}`} fill="none" stroke={getCompColor(cIdx)} strokeWidth="2" />
+                                {requirements.map((r, rIdx) => {
+                                  const ass = assessments.find(a => a.reqId === r.id && a.compId === comp.id);
+                                  if (!ass || !ass.value) return null;
+                                  const x = 25 + (ass.value - 1) * 50;
+                                  const y = rIdx * 48 + 24;
+                                  
+                                  if (comp.name === 'Nuestro') {
+                                    return <polygon key={`dot-${comp.id}-${r.id}`} points={`${x},${y-6} ${x+6},${y+5} ${x-6},${y+5}`} fill={getCompColor(cIdx)} />
+                                  }
+                                  return <circle key={`dot-${comp.id}-${r.id}`} cx={x} cy={y} r="5" fill={getCompColor(cIdx)} />
+                                })}
+                              </g>
+                            );
+                          })}
+                        </svg>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -523,7 +609,7 @@ export default function App() {
                       />
                     </td>
                   ))}
-                  <td colSpan={competitors.length} className="border-b border-slate-200 bg-slate-50"></td>
+                  <td colSpan={competitors.length + 1} className="border-b border-slate-200 bg-slate-50"></td>
                 </tr>
                 <tr>
                   <td colSpan={2} className="border-b border-r border-slate-200 p-3 bg-slate-50 text-right font-semibold text-slate-600">Unidades de Medida</td>
@@ -537,7 +623,7 @@ export default function App() {
                       />
                     </td>
                   ))}
-                  <td colSpan={competitors.length} className="border-b border-slate-200 bg-slate-50"></td>
+                  <td colSpan={competitors.length + 1} className="border-b border-slate-200 bg-slate-50"></td>
                 </tr>
                 <tr>
                   <td colSpan={2} className="border-b border-r border-slate-200 p-3 bg-slate-100 text-right font-bold text-slate-700">Importancia Absoluta</td>
@@ -546,7 +632,7 @@ export default function App() {
                       {calculatedImportance[c.id]?.absolute || 0}
                     </td>
                   ))}
-                  <td colSpan={competitors.length} className="border-b border-slate-200 bg-slate-100"></td>
+                  <td colSpan={competitors.length + 1} className="border-b border-slate-200 bg-slate-100"></td>
                 </tr>
                 <tr>
                   <td colSpan={2} className="border-r border-slate-200 p-3 bg-slate-100 text-right font-bold text-slate-700">Importancia Relativa (%)</td>
@@ -555,7 +641,7 @@ export default function App() {
                       {((calculatedImportance[c.id]?.relative || 0) * 100).toFixed(1)}%
                     </td>
                   ))}
-                  <td colSpan={competitors.length} className="bg-slate-100"></td>
+                  <td colSpan={competitors.length + 1} className="bg-slate-100"></td>
                 </tr>
               </tfoot>
             </table>
@@ -602,11 +688,11 @@ export default function App() {
 
         <footer className="mt-12 mb-8 flex flex-col items-center justify-center text-slate-500 text-sm space-y-3">
           <p>Desarrollado por el <strong>Prof. Oscar Campo, PhD</strong> (<a href="mailto:oicampo@uao.edu.co" className="hover:text-slate-700 underline">oicampo@uao.edu.co</a>).</p>
-          <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
+          <a href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="license noopener noreferrer" className="hover:opacity-80 transition-opacity">
             <img alt="Licencia Creative Commons" style={{ borderWidth: 0 }} src="https://licensebuttons.net/l/by-nc/4.0/88x31.png" referrerPolicy="no-referrer" />
           </a>
           <p className="text-xs text-center max-w-lg">
-            Esta obra está bajo una <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-700">Licencia Creative Commons Atribución-NoComercial 4.0 Internacional</a>.<br/>
+            Esta obra está bajo una <a href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="license noopener noreferrer" className="underline hover:text-slate-700">Licencia Creative Commons Atribución-NoComercial 4.0 Internacional</a>.<br/>
             Es de uso libre mencionando al autor y no se permite su comercialización.
           </p>
         </footer>
