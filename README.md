@@ -16,9 +16,11 @@ Aplicación web interactiva para construir y editar una **matriz QFD (Casa de la
 
 ## Demo
 
+![](files/matriz-qfd-nativa.svg)
+
 ![](src/matriz-qfd.png)
 
-- URL de la app: `https://tu_usuario.github.io/Matriz-QFD` (actualiza con la URL real).
+- URL de la app: `https://oscampo.github.io/Matriz-QFD` (actualiza con la URL real).
 
 ## ¿Para qué sirve esta app?
 
