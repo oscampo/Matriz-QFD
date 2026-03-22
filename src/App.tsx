@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Plus, Trash2, ArrowUp, ArrowDown, Target, Download, Upload, Info, Image as ImageIcon, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, ArrowUp, ArrowDown, Target, Download, Upload, Info, Image as ImageIcon, AlertTriangle, FileCode } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 
 type Requirement = {
@@ -74,6 +74,8 @@ export default function App() {
     { reqId: 'r1', compId: 'comp1', value: 4 },
     { reqId: 'r1', compId: 'comp2', value: 3 },
   ]);
+
+  const [hoveredCrossRel, setHoveredCrossRel] = useState<{charId1: string, charId2: string} | null>(null);
 
   const [itemToDelete, setItemToDelete] = useState<{type: 'req' | 'char', id: string, name: string} | null>(null);
 
@@ -299,18 +301,262 @@ export default function App() {
   const exportImage = async () => {
     if (!matrixRef.current) return;
     try {
+      // Usamos un pixelRatio alto (3 o 4) para que el PNG tenga calidad "Retina" 
+      // y no se pixele al hacer zoom en GitHub.
       const dataUrl = await htmlToImage.toPng(matrixRef.current, {
         backgroundColor: '#ffffff',
-        pixelRatio: 2,
+        pixelRatio: 4, 
       });
+      
+      // Convertimos el dataUrl a Blob para evitar problemas de límite de longitud de URL en el navegador
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      
       const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = 'matriz-qfd.png';
+      a.href = url;
+      a.download = 'matriz-qfd-alta-res.png';
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Error al exportar imagen:', err);
       alert('Hubo un error al exportar la imagen.');
     }
+  };
+
+  const exportNativeSvg = () => {
+    const charW = 64;
+    const rowH = 48;
+    const reqW = 250;
+    const impW = 48;
+    const compW = 64;
+    const profileW = 250;
+
+    const numReqs = requirements.length;
+    const numChars = characteristics.length;
+    const numComps = competitors.length;
+
+    const roofH = numChars * 32;
+    const headerH = 200;
+    
+    const startX = reqW + impW;
+    const startY = roofH + headerH;
+    const matrixH = numReqs * rowH;
+    const footerH = 4 * rowH;
+
+    const totalW = startX + (numChars * charW) + (numComps * compW) + profileW;
+    const totalH = startY + matrixH + footerH;
+
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalW} ${totalH}" width="${totalW}" height="${totalH}" style="background: white; font-family: Arial, sans-serif;">`;
+
+    svg += `<style>
+      .line { stroke: #cbd5e1; stroke-width: 1; }
+      .line-dash { stroke: #e2e8f0; stroke-width: 1; stroke-dasharray: 4 4; }
+      .text-sm { font-size: 12px; fill: #334155; }
+      .text-xs { font-size: 10px; fill: #64748b; }
+      .text-md { font-size: 14px; fill: #1e293b; font-weight: bold; }
+      .text-req { font-size: 13px; fill: #334155; }
+      .bg-header { fill: #f8fafc; }
+      .bg-footer { fill: #f1f5f9; }
+      .bg-cell { fill: #ffffff; }
+    </style>`;
+
+    // 1. Roof
+    svg += `<g id="roof">`;
+    for (let i = 0; i <= numChars; i++) {
+      const x1_up = startX + i * charW;
+      const y1_up = roofH;
+      const x2_up = startX + i * charW + (numChars - i) * 32;
+      const y2_up = roofH - (numChars - i) * 32;
+      svg += `<line x1="${x1_up}" y1="${y1_up}" x2="${x2_up}" y2="${y2_up}" class="line" />`;
+
+      const x1_dn = startX + i * charW;
+      const y1_dn = roofH;
+      const x2_dn = startX + i * charW - i * 32;
+      const y2_dn = roofH - i * 32;
+      svg += `<line x1="${x1_dn}" y1="${y1_dn}" x2="${x2_dn}" y2="${y2_dn}" class="line" />`;
+    }
+    
+    crossRelationships.forEach(rel => {
+      const idx1 = characteristics.findIndex(c => c.id === rel.charId1);
+      const idx2 = characteristics.findIndex(c => c.id === rel.charId2);
+      if (idx1 !== -1 && idx2 !== -1) {
+        const i = Math.min(idx1, idx2);
+        const j = Math.max(idx1, idx2);
+        const cx = startX + (i + j + 1) * 32;
+        const cy = roofH - (j - i) * 32;
+        svg += `<text x="${cx}" y="${cy + 5}" text-anchor="middle" class="text-md">${rel.value}</text>`;
+      }
+    });
+    svg += `</g>`;
+
+    // 2. Top-Left Header Cell
+    svg += `<g id="top-left-header">`;
+    svg += `<rect x="0" y="${roofH}" width="${startX}" height="${headerH}" class="bg-header line" />`;
+    svg += `<line x1="0" y1="${roofH}" x2="${startX}" y2="${roofH + headerH}" class="line" />`;
+    svg += `<text x="${startX - 15}" y="${roofH + 30}" text-anchor="end" class="text-md">CÓMO</text>`;
+    svg += `<text x="15" y="${roofH + headerH - 20}" class="text-md">QUÉ</text>`;
+    svg += `</g>`;
+
+    // 3. Headers (CÓMO)
+    svg += `<g id="headers">`;
+    characteristics.forEach((char, i) => {
+      const x = startX + i * charW;
+      svg += `<rect x="${x}" y="${roofH}" width="${charW}" height="${headerH}" class="bg-header line" />`;
+      const dirSymbol = char.direction === 'max' ? '↑' : char.direction === 'min' ? '↓' : '◎';
+      const dirColor = char.direction === 'max' ? '#059669' : char.direction === 'min' ? '#e11d48' : '#2563eb';
+      svg += `<text x="${x + charW/2}" y="${roofH + 30}" text-anchor="middle" class="text-md" fill="${dirColor}">${dirSymbol}</text>`;
+      svg += `<text x="${x + charW/2 + 4}" y="${roofH + headerH - 10}" transform="rotate(-90 ${x + charW/2 + 4} ${roofH + headerH - 10})" class="text-sm">${char.text}</text>`;
+    });
+    svg += `</g>`;
+
+    // 4. Competitor Headers
+    const compStartX = startX + numChars * charW;
+    svg += `<g id="comp-headers">`;
+    svg += `<rect x="${compStartX}" y="${roofH}" width="${numComps * compW + profileW}" height="${headerH - 150}" class="bg-header line" />`;
+    svg += `<text x="${compStartX + (numComps * compW + profileW)/2}" y="${roofH + 30}" text-anchor="middle" class="text-md">Evaluación Competitiva</text>`;
+    
+    competitors.forEach((comp, i) => {
+      const x = compStartX + i * compW;
+      svg += `<rect x="${x}" y="${roofH + 50}" width="${compW}" height="${headerH - 50}" class="bg-header line" />`;
+      svg += `<text x="${x + compW/2 + 4}" y="${roofH + headerH - 10}" transform="rotate(-90 ${x + compW/2 + 4} ${roofH + headerH - 10})" class="text-sm">${comp.name}</text>`;
+    });
+
+    // Profile Header
+    const profileStartX = compStartX + numComps * compW;
+    svg += `<rect x="${profileStartX}" y="${roofH + 50}" width="${profileW}" height="${headerH - 50}" class="bg-header line" />`;
+    svg += `<text x="${profileStartX + profileW/2}" y="${roofH + 75}" text-anchor="middle" class="text-sm">Perfil Competitivo</text>`;
+    // Scale 1-5
+    for (let i = 1; i <= 5; i++) {
+      const x = profileStartX + (i - 1) * 50 + 25;
+      svg += `<text x="${x}" y="${roofH + headerH - 10}" text-anchor="middle" class="text-xs font-bold">${i}</text>`;
+    }
+    svg += `</g>`;
+
+    // 5. Requirements & Matrix
+    svg += `<g id="matrix-body">`;
+    requirements.forEach((req, r) => {
+      const y = startY + r * rowH;
+      
+      // Req Text
+      svg += `<rect x="0" y="${y}" width="${reqW}" height="${rowH}" class="bg-cell line" />`;
+      svg += `<text x="10" y="${y + rowH/2 + 4}" class="text-req">${req.text}</text>`;
+      
+      // Importance
+      svg += `<rect x="${reqW}" y="${y}" width="${impW}" height="${rowH}" class="bg-cell line" />`;
+      svg += `<text x="${reqW + impW/2}" y="${y + rowH/2 + 4}" text-anchor="middle" class="text-md">${req.importance}</text>`;
+
+      // Relationships
+      characteristics.forEach((char, c) => {
+        const x = startX + c * charW;
+        svg += `<rect x="${x}" y="${y}" width="${charW}" height="${rowH}" class="bg-cell line" />`;
+        const rel = relationships.find(rel => rel.reqId === req.id && rel.charId === char.id);
+        if (rel && rel.value > 0) {
+          svg += `<text x="${x + charW/2}" y="${y + rowH/2 + 5}" text-anchor="middle" class="text-md">${rel.value}</text>`;
+        }
+      });
+
+      // Competitor Assessments
+      competitors.forEach((comp, c) => {
+        const x = compStartX + c * compW;
+        const ass = assessments.find(a => a.reqId === req.id && a.compId === comp.id);
+        let bgColor = '#ffffff';
+        if (ass && ass.value) {
+          if (ass.value === 1) bgColor = '#fee2e2';
+          else if (ass.value === 2) bgColor = '#ffedd5';
+          else if (ass.value === 3) bgColor = '#fef9c3';
+          else if (ass.value === 4) bgColor = '#ecfccb';
+          else if (ass.value === 5) bgColor = '#dcfce7';
+        }
+        svg += `<rect x="${x}" y="${y}" width="${compW}" height="${rowH}" fill="${bgColor}" class="line" />`;
+        if (ass && ass.value) {
+          svg += `<text x="${x + compW/2}" y="${y + rowH/2 + 5}" text-anchor="middle" class="text-md">${ass.value}</text>`;
+        }
+      });
+
+      // Profile Column Background
+      svg += `<rect x="${profileStartX}" y="${y}" width="${profileW}" height="${rowH}" class="bg-cell line" />`;
+      for (let i = 1; i <= 5; i++) {
+        const x = profileStartX + (i - 1) * 50 + 25;
+        svg += `<line x1="${x}" y1="${y}" x2="${x}" y2="${y + rowH}" class="line-dash" />`;
+      }
+    });
+    svg += `</g>`;
+
+    // 6. Competitive Profile Lines
+    svg += `<g id="profile-lines">`;
+    competitors.forEach((comp, cIdx) => {
+      const points: string[] = [];
+      requirements.forEach((req, rIdx) => {
+        const ass = assessments.find(a => a.reqId === req.id && a.compId === comp.id);
+        if (ass && ass.value) {
+          const x = profileStartX + (ass.value - 1) * 50 + 25;
+          const y = startY + rIdx * rowH + rowH/2;
+          points.push(`${x},${y}`);
+        }
+      });
+
+      if (points.length > 1) {
+        svg += `<path d="M ${points.join(' L ')}" fill="none" stroke="${getCompColor(cIdx)}" stroke-width="2" />`;
+      }
+
+      points.forEach((p, pIdx) => {
+        const [xStr, yStr] = p.split(',');
+        const x = parseFloat(xStr);
+        const y = parseFloat(yStr);
+        if (comp.name === 'Nuestro') {
+          svg += `<polygon points="${x},${y-6} ${x+6},${y+5} ${x-6},${y+5}" fill="${getCompColor(cIdx)}" />`;
+        } else {
+          svg += `<circle cx="${x}" cy="${y}" r="5" fill="${getCompColor(cIdx)}" />`;
+        }
+      });
+    });
+    svg += `</g>`;
+
+    // 7. Footer Rows
+    const footerStartY = startY + matrixH;
+    const labels = ["Valores Objetivo", "Unidades de Medida", "Importancia Absoluta", "Importancia Relativa (%)"];
+    
+    labels.forEach((label, i) => {
+      const y = footerStartY + i * rowH;
+      svg += `<rect x="0" y="${y}" width="${startX}" height="${rowH}" class="bg-footer line" />`;
+      svg += `<text x="${startX - 10}" y="${y + rowH/2 + 5}" text-anchor="end" class="text-md">${label}</text>`;
+      
+      characteristics.forEach((char, cIdx) => {
+        const x = startX + cIdx * charW;
+        let content = "";
+        let bgColor = "#ffffff";
+
+        if (i === 0) content = char.targetValue || "-";
+        else if (i === 1) content = char.unit || "-";
+        else if (i === 2) content = (calculatedImportance[char.id]?.absolute || 0).toString();
+        else if (i === 3) {
+          const rel = calculatedImportance[char.id]?.relative || 0;
+          content = (rel * 100).toFixed(1) + "%";
+          bgColor = getRelativeColor(rel);
+        }
+
+        svg += `<rect x="${x}" y="${y}" width="${charW}" height="${rowH}" fill="${bgColor}" class="line" />`;
+        svg += `<text x="${x + charW/2}" y="${y + rowH/2 + 5}" text-anchor="middle" class="text-sm">${content}</text>`;
+      });
+
+      // Fill remaining space in footer
+      svg += `<rect x="${compStartX}" y="${y}" width="${numComps * compW + profileW}" height="${rowH}" class="bg-footer line" />`;
+    });
+
+    svg += `</svg>`;
+
+    const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'matriz-qfd-completa.svg';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const importData = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -437,7 +683,13 @@ export default function App() {
                               const points = `${cx},${cy - 32} ${cx + 32},${cy} ${cx},${cy + 32} ${cx - 32},${cy}`;
 
                               return (
-                                <g key={`roof-${id1}-${id2}`} onClick={() => cycleCrossRelationship(id1, id2)} className="cursor-pointer hover:opacity-80 transition-opacity">
+                                <g 
+                                  key={`roof-${id1}-${id2}`} 
+                                  onClick={() => cycleCrossRelationship(id1, id2)} 
+                                  onMouseEnter={() => setHoveredCrossRel({charId1: id1, charId2: id2})}
+                                  onMouseLeave={() => setHoveredCrossRel(null)}
+                                  className="cursor-pointer hover:opacity-80 transition-opacity"
+                                >
                                   <polygon points={points} fill={fillColor} stroke="#cbd5e1" strokeWidth="1" />
                                   <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" fill={textColor} fontSize="13" fontWeight="bold">
                                     {val !== 0 ? val : ''}
@@ -446,6 +698,32 @@ export default function App() {
                               );
                             });
                           })}
+                          {/* Sombreado del camino (hover) */}
+                          {hoveredCrossRel && (() => {
+                            const char1Idx = characteristics.findIndex(c => c.id === hoveredCrossRel.charId1);
+                            const char2Idx = characteristics.findIndex(c => c.id === hoveredCrossRel.charId2);
+                            if (char1Idx === -1 || char2Idx === -1) return null;
+                            const i = Math.min(char1Idx, char2Idx);
+                            const j = Math.max(char1Idx, char2Idx);
+                            const H = characteristics.length * 32;
+                            const cx = 32 + (i + j) * 32;
+                            const cy_bottom = (j - i) * 32;
+                            const cy = H - cy_bottom;
+
+                            const leftBand = `${cx},${cy - 32} ${cx + 32},${cy} ${(i + 1) * 64},${H} ${i * 64},${H}`;
+                            const rightBand = `${cx},${cy - 32} ${cx - 32},${cy} ${j * 64},${H} ${(j + 1) * 64},${H}`;
+
+                            return (
+                              <g pointerEvents="none">
+                                <polygon points={leftBand} fill="#3b82f6" opacity="0.15" />
+                                <polygon points={rightBand} fill="#3b82f6" opacity="0.15" />
+                                <polygon points={`${cx},${cy - 32} ${cx + 32},${cy} ${cx},${cy + 32} ${cx - 32},${cy}`} fill="#3b82f6" opacity="0.3" stroke="#2563eb" strokeWidth="2" />
+                              </g>
+                            );
+                          })()}
+                          {/* Diagonales exteriores del techo */}
+                          <line x1={0} y1={characteristics.length * 32} x2={characteristics.length * 32} y2={0} stroke="#cbd5e1" strokeWidth="1" />
+                          <line x1={characteristics.length * 64} y1={characteristics.length * 32} x2={characteristics.length * 32} y2={0} stroke="#cbd5e1" strokeWidth="1" />
                         </svg>
                       </div>
                     </th>
@@ -454,15 +732,17 @@ export default function App() {
                 )}
                 <tr>
                   <th colSpan={2} className="border-b border-r border-slate-200 p-2 bg-slate-50"></th>
-                  {characteristics.map(c => (
-                    <th key={`dir-${c.id}`} className="border-b border-r border-slate-200 p-1 bg-slate-50 text-center" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
+                  {characteristics.map(c => {
+                    const isHovered = hoveredCrossRel && (hoveredCrossRel.charId1 === c.id || hoveredCrossRel.charId2 === c.id);
+                    return (
+                    <th key={`dir-${c.id}`} className={`border-b border-r border-slate-200 p-1 text-center transition-colors ${isHovered ? 'bg-blue-100' : 'bg-slate-50'}`} style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
                       <button onClick={() => toggleDirection(c.id)} className="p-1.5 hover:bg-slate-200 rounded-md transition-colors" title="Cambiar dirección de mejora">
                         {c.direction === 'max' && <ArrowUp size={16} className="text-emerald-600 mx-auto" />}
                         {c.direction === 'min' && <ArrowDown size={16} className="text-rose-600 mx-auto" />}
                         {c.direction === 'target' && <Target size={16} className="text-blue-600 mx-auto" />}
                       </button>
                     </th>
-                  ))}
+                  )})}
                   <th colSpan={competitors.length} className="border-b border-r border-slate-200 p-2 bg-slate-50 text-center font-semibold text-slate-600">
                     Evaluación Competitiva (1-5)
                   </th>
@@ -483,8 +763,10 @@ export default function App() {
                     </div>
                   </th>
                   <th className="border-b border-r border-slate-200 p-3 bg-slate-50 text-center w-20 font-semibold text-slate-700 align-bottom" title="Importancia (1-5)">Imp.</th>
-                  {characteristics.map(c => (
-                    <th key={`head-${c.id}`} className="border-b border-r border-slate-200 p-2 bg-white h-48 align-bottom group relative" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
+                  {characteristics.map(c => {
+                    const isHovered = hoveredCrossRel && (hoveredCrossRel.charId1 === c.id || hoveredCrossRel.charId2 === c.id);
+                    return (
+                    <th key={`head-${c.id}`} className={`border-b border-r border-slate-200 p-2 h-48 align-bottom group relative transition-colors ${isHovered ? 'bg-blue-50' : 'bg-white'}`} style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
                       <div className="flex flex-col items-center justify-end h-full w-10 mx-auto">
                         <input
                           value={c.text}
@@ -496,7 +778,7 @@ export default function App() {
                         </button>
                       </div>
                     </th>
-                  ))}
+                  )})}
                   {competitors.map((comp, idx) => (
                     <th key={`comp-${comp.id}`} className="border-b border-r border-slate-200 p-2 bg-slate-50 text-center w-12 align-bottom group relative">
                       <div className="flex flex-col items-center justify-end h-full w-full mx-auto">
@@ -713,7 +995,10 @@ export default function App() {
             <Download size={18} /> Descargar JSON
           </button>
           <button onClick={exportImage} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors">
-            <ImageIcon size={18} /> Descargar Imagen
+            <ImageIcon size={18} /> Descargar PNG (Alta Res)
+          </button>
+          <button onClick={exportNativeSvg} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 shadow-sm transition-colors">
+            <FileCode size={18} /> Descargar SVG Nativo
           </button>
         </div>
 
@@ -735,7 +1020,7 @@ export default function App() {
             <div className="bg-white/60 p-4 rounded-lg border border-blue-200 shadow-sm flex gap-3 items-start">
               <span className="text-xl leading-none">💡</span>
               <p className="leading-relaxed">
-                <strong>Tip:</strong> Cuando trabajes en tu matriz, puedes descargar la versión <strong>.json</strong>. Cuando quieras volver a trabajar sobre ella o compartirla con un colega, ¡simplemente debes cargarla y seguir editando! Descarga la <strong>imagen</strong> para usarla en la documentación de tu proyecto.
+                <strong>Tip:</strong> Cuando trabajes en tu matriz, puedes descargar la versión <strong>.json</strong>. Cuando quieras volver a trabajar sobre ella o compartirla con un colega, ¡simplemente debes cargarla y seguir editando! Descarga la <strong>imagen PNG de Alta Resolución</strong> o el <strong>SVG Nativo</strong> para usarla en la documentación de tu proyecto o en GitHub sin que se pixele.
               </p>
             </div>
           </div>
