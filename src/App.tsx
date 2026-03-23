@@ -925,7 +925,7 @@ export default function App() {
           <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-8 items-center justify-between">
             <div className="flex flex-wrap gap-8 items-center">
               <div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">{t.relWeight} (t.que vs t.como)</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">{t.relWeight} ({t.que} vs {t.como})</div>
                 <div className="flex gap-4 text-xs">
                   <div className="flex items-center gap-1.5"><span className="font-bold text-slate-800 bg-slate-100 w-6 h-6 flex items-center justify-center rounded">⏺</span> <span className="text-slate-600">{t.strong} (9)</span></div>
                   <div className="flex items-center gap-1.5"><span className="font-bold text-slate-800 bg-slate-100 w-6 h-6 flex items-center justify-center rounded">○</span> <span className="text-slate-600">{t.moderate} (3)</span></div>
