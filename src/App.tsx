@@ -128,7 +128,7 @@ const translations = {
     csvRoof: "ROOF: Correlaciones cruzadas entre características.",
     csvBench: "BENCHMARKING: Valores reales de la competencia.",
     csvRoofDetail: "IMPORTANTE: En la sección ROOF, usa \"x\" en las correlaciones entre características técnicas iguales:",
-    csvRoofRef: "Para más referencia, revisa arriba el Ejemplo de archivo CSV. No es necesario llenar 2 veces la relación entre 2 características del techo.",
+    csvRoofRef: "El importador es flexible: puedes usar la matriz triangular superior (recomendado), inferior o ambas. El sistema detectará y evitará duplicados automáticamente. No olvides marcar la diagonal con 'x'.",
     csvSymbols: "Símbolos",
     csvSymbolDir: "Dirección de Mejora: \"^\"(Max), \"v\"(Min), \"o\"(Obj)",
     csvSymbolRel: "Importancia Relativa: \"9\" Fuerte, \"3\" Moderada, \"1\" Débil",
@@ -206,7 +206,7 @@ const translations = {
     csvRoof: "ROOF: Cross-correlations between characteristics.",
     csvBench: "BENCHMARKING: Actual competitor values.",
     csvRoofDetail: "IMPORTANT: In the ROOF section, use \"x\" for correlations between identical technical characteristics:",
-    csvRoofRef: "For more reference, check the CSV file example above. It is not necessary to fill the relationship between 2 roof characteristics twice.",
+    csvRoofRef: "The importer is flexible: you can use the upper triangle (recommended), lower triangle, or both. The system will automatically detect and avoid duplicates. Don't forget to mark the diagonal with 'x'.",
     csvSymbols: "Symbols",
     csvSymbolDir: "Improvement Direction: \"^\"(Max), \"v\"(Min), \"o\"(Obj)",
     csvSymbolRel: "Relative Importance: \"9\" Strong, \"3\" Moderate, \"1\" Weak",
@@ -1153,15 +1153,22 @@ BENCHMARKING,Comp A,2.7,240,10,,,
             const char1Idx = newChars.findIndex(c => c.text === label);
             if (char1Idx !== -1) {
               parts.slice(2, 2 + newChars.length).forEach((val, i) => {
-                if (i > char1Idx) { // Only process upper triangle to avoid duplicates
-                  let value = 0;
-                  if (val === '++') value = 9;
-                  else if (val === '+') value = 3;
-                  else if (val === '-') value = -3;
-                  else if (val === '--') value = -9;
+                if (i === char1Idx) return; // Skip diagonal
+                
+                let value = 0;
+                if (val === '++') value = 9;
+                else if (val === '+') value = 3;
+                else if (val === '-') value = -3;
+                else if (val === '--') value = -9;
+                
+                if (value !== 0) {
+                  const id1 = newChars[char1Idx].id;
+                  const id2 = newChars[i].id;
+                  const [firstId, secondId] = id1 < id2 ? [id1, id2] : [id2, id1];
                   
-                  if (value !== 0) {
-                    newCrossRels.push({ charId1: newChars[char1Idx].id, charId2: newChars[i].id, value });
+                  const exists = newCrossRels.some(r => r.charId1 === firstId && r.charId2 === secondId);
+                  if (!exists) {
+                    newCrossRels.push({ charId1: firstId, charId2: secondId, value });
                   }
                 }
               });
