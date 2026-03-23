@@ -1138,7 +1138,7 @@ export default function App() {
                       <div className="flex flex-wrap gap-2 p-2 text-[10px] text-slate-500 font-normal justify-center border-b border-slate-200">
                         {competitors.map((comp, idx) => (
                           <div key={comp.id} className="flex items-center gap-1">
-                            <div className={`w-2 h-2 ${comp.name === 'Nuestro' ? 'clip-triangle' : 'rounded-full'}`} style={{ backgroundColor: getCompColor(idx) }}></div>
+                            <div className={`w-2 h-2 ${comp.name === 'Nuestro' ? 'clip-triangle' : 'clip-triangle'}`} style={{ backgroundColor: getCompColor(idx) }}></div>
                             <span className="truncate max-w-[60px]">{comp.name}</span>
                           </div>
                         ))}
