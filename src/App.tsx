@@ -51,7 +51,7 @@ const translations = {
     exportSvg: "Exportar SVG",
     importJson: "Importar JSON",
     exportJson: "Exportar JSON",
-    reqHeader: "Requerimientos del Cliente",
+    reqHeader: "Requerimientos Cliente",
     impHeader: "Imp.",
     charHeader: "Características Técnicas",
     compEval: "Evaluación Competitiva",
@@ -498,11 +498,23 @@ export default function App() {
   const exportImage = async () => {
     if (!matrixRef.current) return;
     try {
+      // Calculamos el tamaño real del elemento para evitar recortes
+      const el = matrixRef.current;
+      const width = el.scrollWidth;
+      const height = el.scrollHeight;
+
       // Usamos un pixelRatio alto (3 o 4) para que el PNG tenga calidad "Retina" 
       // y no se pixele al hacer zoom en GitHub.
-      const dataUrl = await htmlToImage.toPng(matrixRef.current, {
+      const dataUrl = await htmlToImage.toPng(el, {
         backgroundColor: '#ffffff',
         pixelRatio: 4, 
+        width: width,
+        height: height,
+        style: {
+          transform: 'none',
+          margin: '0',
+          padding: '0' // Quitamos padding para que coincida exactamente con el elemento
+        }
       });
       
       // Convertimos el dataUrl a Blob para evitar problemas de límite de longitud de URL en el navegador
@@ -661,13 +673,39 @@ export default function App() {
     // Row 2: Competitor Names
     competitors.forEach((comp, i) => {
       const x = compStartX + i * compW;
+      const color = getCompColor(i);
       svg += `<rect x="${x}" y="${roofH + dirH}" width="${compW}" height="${mainHeaderH}" class="bg-header line" />`;
+      
+      // Marker
+      const mx = x + compW/2;
+      const my = roofH + dirH + 15;
+      if (comp.id === 'comp1') {
+        svg += `<polygon points="${mx},${my-5} ${mx+5},${my+5} ${mx-5},${my+5}" fill="${color}" />`;
+      } else {
+        svg += `<circle cx="${mx}" cy="${my}" r="4" fill="${color}" />`;
+      }
+      
       svg += `<text x="${x + compW/2 + 4}" y="${roofH + dirH + mainHeaderH - 10}" transform="rotate(-90 ${x + compW/2 + 4} ${roofH + dirH + mainHeaderH - 10})" class="text-sm">${escapeXml(comp.name)}</text>`;
     });
 
-    // Row 2: Profile Scale
+    // Row 2: Profile Scale & Legend
     const profileStartX = compStartX + numComps * compW;
     svg += `<rect x="${profileStartX}" y="${roofH + dirH}" width="${profileW}" height="${mainHeaderH}" class="bg-header line" />`;
+    
+    // Legend
+    const legendY = roofH + dirH + 15;
+    const legendItemW = profileW / Math.max(1, competitors.length);
+    competitors.forEach((comp, i) => {
+      const lx = profileStartX + (i * legendItemW) + 15;
+      const color = getCompColor(i);
+      if (comp.id === 'comp1') {
+        svg += `<polygon points="${lx},${legendY-4} ${lx+4},${legendY+4} ${lx-4},${legendY+4}" fill="${color}" />`;
+      } else {
+        svg += `<circle cx="${lx}" cy="${legendY}" r="4" fill="${color}" />`;
+      }
+      svg += `<text x="${lx + 10}" y="${legendY + 4}" class="text-xs">${escapeXml(comp.name.substring(0, 12))}</text>`;
+    });
+
     // Scale 1-5
     for (let i = 1; i <= 5; i++) {
       const x = profileStartX + (i - 1) * 50 + 25;
@@ -746,7 +784,7 @@ export default function App() {
         const [xStr, yStr] = p.split(',');
         const x = parseFloat(xStr);
         const y = parseFloat(yStr);
-        if (comp.name === 'Nuestro') {
+        if (comp.id === 'comp1') {
           svg += `<polygon points="${x},${y-6} ${x+6},${y+5} ${x-6},${y+5}" fill="${getCompColor(cIdx)}" />`;
         } else {
           svg += `<circle cx="${x}" cy="${y}" r="5" fill="${getCompColor(cIdx)}" />`;
@@ -925,7 +963,7 @@ export default function App() {
           <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-8 items-center justify-between">
             <div className="flex flex-wrap gap-8 items-center">
               <div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">{t.relWeight} ({t.que} vs {t.como})</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">{t.relWeight} ({t.como} vs {t.que})</div>
                 <div className="flex gap-4 text-xs">
                   <div className="flex items-center gap-1.5"><span className="font-bold text-slate-800 bg-slate-100 w-6 h-6 flex items-center justify-center rounded">⏺</span> <span className="text-slate-600">{t.strong} (9)</span></div>
                   <div className="flex items-center gap-1.5"><span className="font-bold text-slate-800 bg-slate-100 w-6 h-6 flex items-center justify-center rounded">○</span> <span className="text-slate-600">{t.moderate} (3)</span></div>
@@ -956,18 +994,15 @@ export default function App() {
         </div>
 
         {/* Construction Toolbar */}
-        <div className="flex items-center gap-2 mb-2 bg-slate-800 p-1.5 rounded-lg shadow-md border border-slate-700">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 border-r border-slate-600 mr-1">
-            {language === 'es' ? 'Construcción' : 'Construction'}
-          </div>
-          <button onClick={addRequirement} className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white hover:bg-blue-500 rounded-md transition-all text-xs font-bold shadow-sm">
-            <Plus size={14} /> {t.que}
+        <div className="flex items-center gap-3 mb-4 bg-white p-3 rounded-xl shadow-sm border border-slate-200">
+          <button onClick={addRequirement} className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-500 rounded-lg transition-all text-xs font-bold shadow-sm">
+            {language === 'es' ? '+ Añadir QUÉ' : '+ Add WHAT'}
           </button>
-          <button onClick={addCharacteristic} className="flex items-center gap-1.5 px-3 py-1 bg-emerald-600 text-white hover:bg-emerald-500 rounded-md transition-all text-xs font-bold shadow-sm">
-            <Plus size={14} /> {t.como}
+          <button onClick={addCharacteristic} className="px-4 py-2 bg-emerald-600 text-white hover:bg-emerald-500 rounded-lg transition-all text-xs font-bold shadow-sm">
+            {language === 'es' ? '+ Añadir CÓMO' : '+ Add HOW'}
           </button>
-          <button onClick={addCompetitor} className="flex items-center gap-1.5 px-3 py-1 bg-purple-600 text-white hover:bg-purple-500 rounded-md transition-all text-xs font-bold shadow-sm">
-            <Plus size={14} /> {t.addComp}
+          <button onClick={addCompetitor} className="px-4 py-2 bg-purple-600 text-white hover:bg-purple-500 rounded-lg transition-all text-xs font-bold shadow-sm">
+            {language === 'es' ? '+ Añadir Competidor' : '+ Add Competitor'}
           </button>
         </div>
 
@@ -986,6 +1021,7 @@ export default function App() {
                 {competitors.map(comp => (
                   <col key={`col-comp-${comp.id}`} style={{ width: '96px', minWidth: '96px' }} />
                 ))}
+                <col style={{ width: '250px', minWidth: '250px' }} />
               </colgroup>
               <thead>
                 {characteristics.length > 1 && (
@@ -1120,7 +1156,7 @@ export default function App() {
                     <th key={`comp-${comp.id}`} className="border-b border-r border-slate-200 p-2 bg-slate-50 text-center w-12 align-bottom group relative">
                       <div className="flex flex-col items-center justify-end h-full w-full mx-auto">
                         <div className="flex items-center gap-1 mb-1">
-                          <div className={`w-2 h-2 ${comp.name === 'Nuestro' ? 'clip-triangle' : 'rounded-full'}`} style={{ backgroundColor: getCompColor(idx) }}></div>
+                          <div className={`w-2 h-2 ${comp.id === 'comp1' ? 'clip-triangle' : 'rounded-full'}`} style={{ backgroundColor: getCompColor(idx) }}></div>
                         </div>
                         <input
                           value={comp.name}
@@ -1138,7 +1174,7 @@ export default function App() {
                       <div className="flex flex-wrap gap-2 p-2 text-[10px] text-slate-500 font-normal justify-center border-b border-slate-200">
                         {competitors.map((comp, idx) => (
                           <div key={comp.id} className="flex items-center gap-1">
-                            <div className={`w-2 h-2 ${comp.name === 'Nuestro' ? 'clip-triangle' : 'rounded-full'}`} style={{ backgroundColor: getCompColor(idx) }}></div>
+                            <div className={`w-2 h-2 ${comp.id === 'comp1' ? 'clip-triangle' : 'rounded-full'}`} style={{ backgroundColor: getCompColor(idx) }}></div>
                             <span className="truncate max-w-[60px]">{comp.name}</span>
                           </div>
                         ))}
@@ -1244,7 +1280,7 @@ export default function App() {
                                   const x = 25 + (ass.value - 1) * 50;
                                   const y = rIdx * 48 + 24;
                                   
-                                  if (comp.name === 'Nuestro') {
+                                  if (comp.id === 'comp1') {
                                     return <polygon key={`dot-${comp.id}-${r.id}`} points={`${x},${y-6} ${x+6},${y+5} ${x-6},${y+5}`} fill={getCompColor(cIdx)} />
                                   }
                                   return <circle key={`dot-${comp.id}-${r.id}`} cx={x} cy={y} r="5" fill={getCompColor(cIdx)} />
