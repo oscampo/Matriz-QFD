@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Plus, Trash2, ArrowUp, ArrowDown, Target, Download, Upload, Info, Image as ImageIcon, AlertTriangle, FileCode, HelpCircle } from 'lucide-react';
+import { Plus, Trash2, ArrowUp, ArrowDown, Target, Download, Upload, Info, Image as ImageIcon, AlertTriangle, FileCode, HelpCircle, FolderOpen, ChevronDown } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 
 type Requirement = {
@@ -39,6 +39,12 @@ type CompAssessment = {
   value: number; // 1-5
 };
 
+type TechnicalBenchmark = {
+  charId: string;
+  compId: string;
+  value: string;
+};
+
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const translations = {
@@ -51,6 +57,11 @@ const translations = {
     exportSvg: "Exportar SVG",
     importJson: "Importar JSON",
     exportJson: "Exportar JSON",
+    importCsv: "Importar CSV",
+    exportCsv: "Exportar CSV",
+    file: "Archivo",
+    import: "Importar",
+    export: "Exportar",
     reqHeader: "Requerimientos Cliente",
     impHeader: "Imp.",
     charHeader: "Características Técnicas",
@@ -99,12 +110,27 @@ const translations = {
     maximize: "Maximizar",
     minimize: "Minimizar",
     targetLabel: "Objetivo",
+    techBenchmark: "Benchmarking Técnico (Valores Reales)",
     warning: "Advertencia",
     deleteWarning: "Esta acción eliminará toda la fila/columna y todas las relaciones asociadas. No se puede deshacer.",
     yesDelete: "Sí, eliminar",
     tip: "Tip",
     tipDesc: "Cuando trabajes en tu matriz, puedes descargar la versión .json para seguir editando después. Exporta a PNG o SVG para tu documentación.",
+    tipCsv: "¡Nuevo!: Ahora puedes exportar tu matriz a un archivo CSV editable en Excel. Esto te permite trabajar tus datos fuera de la app e importarlos cuando quieras.",
+    viewCsvGuide: "Ver Guía de Formato CSV",
+    csvExample: "Ejemplo de archivo CSV",
     developedBy: "Desarrollado por el",
+    csvGuide: "Guía CSV",
+    generalHelp: "Ayuda General",
+    csvIntro: "Estructura el archivo CSV con estas 4 secciones:",
+    csvConfig: "CONFIG: Metas técnicas (Dirección, Unidad, Objetivo).",
+    csvRel: "RELACIONES: Requerimientos, importancia y evaluación competitiva.",
+    csvRoof: "TECHO: Correlaciones cruzadas entre características.",
+    csvBench: "BENCHMARKING: Valores reales de la competencia.",
+    csvSymbols: "Símbolos",
+    csvSymbolDir: "Dirección de Mejora: \"^\"(Max), \"v\"(Min), \"o\"(Obj)",
+    csvSymbolRel: "Importancia Relativa: \"9\" Fuerte, \"3\" Moderada, \"1\" Débil",
+    csvSymbolRoof: "Correlaciones Techo: \"++\", \"+\", \"0\", \"-\", \"--\"",
     license: "Esta obra está bajo una Licencia Creative Commons Atribución-NoComercial 4.0 Internacional. Es de uso libre mencionando al autor y no se permite su comercialización."
   },
   en: {
@@ -116,6 +142,11 @@ const translations = {
     exportSvg: "Export SVG",
     importJson: "Import JSON",
     exportJson: "Export JSON",
+    importCsv: "Import CSV",
+    exportCsv: "Export CSV",
+    file: "File",
+    import: "Import",
+    export: "Export",
     reqHeader: "Customer Requirements",
     impHeader: "Imp.",
     charHeader: "Technical Characteristics",
@@ -164,11 +195,26 @@ const translations = {
     maximize: "Maximize",
     minimize: "Minimize",
     targetLabel: "Target",
+    techBenchmark: "Technical Benchmarking (Actual Values)",
+    csvGuide: "CSV Guide",
+    generalHelp: "General Help",
+    csvIntro: "Structure the CSV file with these 4 sections:",
+    csvConfig: "CONFIG: Technical goals (Direction, Unit, Target).",
+    csvRel: "RELATIONS: Requirements, importance, and competitive evaluation.",
+    csvRoof: "ROOF: Cross-correlations between characteristics.",
+    csvBench: "BENCHMARKING: Actual competitor values.",
+    csvSymbols: "Symbols",
+    csvSymbolDir: "Improvement Direction: \"^\"(Max), \"v\"(Min), \"o\"(Obj)",
+    csvSymbolRel: "Relative Importance: \"9\" Strong, \"3\" Moderate, \"1\" Weak",
+    csvSymbolRoof: "Roof Correlations: \"++\", \"+\", \"0\", \"-\", \"--\"",
     warning: "Warning",
     deleteWarning: "This action will delete the entire row/column and all associated relationships. This cannot be undone.",
     yesDelete: "Yes, delete",
     tip: "Tip",
     tipDesc: "When working on your matrix, you can download the .json version to continue editing later. Export to PNG or SVG for your documentation.",
+    tipCsv: "New!: You can now export your matrix to an editable CSV file in Excel. This allows you to work on your data outside the app and import it whenever you want.",
+    viewCsvGuide: "View CSV Format Guide",
+    csvExample: "Example of CSV file",
     developedBy: "Developed by",
     license: "This work is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License. It is free to use mentioning the author and commercialization is not allowed."
   }
@@ -177,13 +223,19 @@ const translations = {
 export default function App() {
   const [language, setLanguage] = useState<'es' | 'en'>('es');
   const [showHelp, setShowHelp] = useState(false);
+  const [helpTab, setHelpTab] = useState<'general' | 'csv'>('general');
+  const [showFileMenu, setShowFileMenu] = useState(false);
   const t = translations[language];
   const helpRef = useRef<HTMLDivElement>(null);
+  const fileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (helpRef.current && !helpRef.current.contains(event.target as Node)) {
         setShowHelp(false);
+      }
+      if (fileMenuRef.current && !fileMenuRef.current.contains(event.target as Node)) {
+        setShowFileMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -253,11 +305,21 @@ export default function App() {
     { reqId: 'r3', compId: 'comp2', value: 5 },
   ]);
 
+  const [techBenchmarks, setTechBenchmarks] = useState<TechnicalBenchmark[]>([
+    { charId: 'c1', compId: 'comp1', value: '2.2' },
+    { charId: 'c1', compId: 'comp2', value: '2.7' },
+    { charId: 'c2', compId: 'comp1', value: '280' },
+    { charId: 'c2', compId: 'comp2', value: '240' },
+    { charId: 'c3', compId: 'comp1', value: '12' },
+    { charId: 'c3', compId: 'comp2', value: '10' },
+  ]);
+
   const [hoveredCrossRel, setHoveredCrossRel] = useState<{charId1: string, charId2: string} | null>(null);
 
   const [itemToDelete, setItemToDelete] = useState<{type: 'req' | 'char', id: string, name: string} | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
   const matrixRef = useRef<HTMLDivElement>(null);
 
   const getRelSymbol = (value: number, forSvg: boolean = false) => {
@@ -325,6 +387,7 @@ export default function App() {
       setCharacteristics(characteristics.filter(c => c.id !== itemToDelete.id));
       setRelationships(relationships.filter(r => r.charId !== itemToDelete.id));
       setCrossRelationships(crossRelationships.filter(r => r.charId1 !== itemToDelete.id && r.charId2 !== itemToDelete.id));
+      setTechBenchmarks(techBenchmarks.filter(b => b.charId !== itemToDelete.id));
     }
     setItemToDelete(null);
   };
@@ -396,6 +459,7 @@ export default function App() {
   const deleteCompetitor = (id: string) => {
     setCompetitors(competitors.filter(c => c.id !== id));
     setAssessments(assessments.filter(a => a.compId !== id));
+    setTechBenchmarks(techBenchmarks.filter(b => b.compId !== id));
   };
 
   const updateAssessment = (reqId: string, compId: string, value: number) => {
@@ -405,6 +469,17 @@ export default function App() {
         return prev.map(a => a.reqId === reqId && a.compId === compId ? { ...a, value } : a);
       } else {
         return [...prev, { reqId, compId, value }];
+      }
+    });
+  };
+
+  const updateTechBenchmark = (charId: string, compId: string, value: string) => {
+    setTechBenchmarks(prev => {
+      const existing = prev.find(b => b.charId === charId && b.compId === compId);
+      if (existing) {
+        return prev.map(b => b.charId === charId && b.compId === compId ? { ...b, value } : b);
+      } else {
+        return [...prev, { charId, compId, value }];
       }
     });
   };
@@ -485,12 +560,99 @@ export default function App() {
   };
 
   const exportData = () => {
-    const data = { requirements, characteristics, relationships, crossRelationships, competitors, assessments };
+    const data = { requirements, characteristics, relationships, crossRelationships, competitors, assessments, techBenchmarks };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = 'matriz-qfd.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const getCSVData = () => {
+    const charNames = characteristics.map(c => c.text);
+    const compNames = competitors.map(c => c.name);
+    
+    const rows: string[][] = [];
+    
+    // Header
+    rows.push(['Sección', 'Etiqueta', ...charNames, 'Importancia', ...compNames]);
+    
+    // CONFIG
+    const directions = characteristics.map(c => c.direction === 'max' ? '^' : c.direction === 'min' ? 'v' : 'o');
+    rows.push(['CONFIG', 'Dirección', ...directions, '', ...compNames.map(() => '')]);
+    
+    const units = characteristics.map(c => c.unit || '');
+    rows.push(['CONFIG', 'Unidad', ...units, '', ...compNames.map(() => '')]);
+    
+    const targets = characteristics.map(c => c.targetValue || '');
+    rows.push(['CONFIG', 'Objetivo', ...targets, '', ...compNames.map(() => '')]);
+    
+    // RELACIONES (Requirements)
+    requirements.forEach(req => {
+      const relValues = characteristics.map(char => {
+        const rel = relationships.find(r => r.reqId === req.id && r.charId === char.id);
+        return rel ? rel.value.toString() : '0';
+      });
+      const compValues = competitors.map(comp => {
+        const ass = assessments.find(a => a.reqId === req.id && a.compId === comp.id);
+        return ass ? ass.value.toString() : '0';
+      });
+      rows.push(['RELACIONES', req.text, ...relValues, req.importance.toString(), ...compValues]);
+    });
+    
+    // TECHO (Roof)
+    characteristics.forEach(char1 => {
+      const crossValues = characteristics.map(char2 => {
+        if (char1.id === char2.id) return '--';
+        const [id1, id2] = char1.id < char2.id ? [char1.id, char2.id] : [char2.id, char1.id];
+        const rel = crossRelationships.find(r => r.charId1 === id1 && r.charId2 === id2);
+        return rel ? getCrossRelSymbol(rel.value) : '0';
+      });
+      rows.push(['TECHO', char1.text, ...crossValues, '', ...compNames.map(() => '')]);
+    });
+    
+    // BENCHMARKING (Technical Benchmarks)
+    competitors.forEach(comp => {
+      const benchValues = characteristics.map(char => {
+        const bench = techBenchmarks.find(b => b.charId === char.id && b.compId === comp.id);
+        return bench ? bench.value : '';
+      });
+      rows.push(['BENCHMARKING', comp.name, ...benchValues, '', ...compNames.map(() => '')]);
+    });
+
+    return rows;
+  };
+
+  const exportCSV = () => {
+    const rows = getCSVData();
+    const csv = rows.map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'matriz-qfd.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadCsvTemplate = () => {
+    const csv = `Sección,Etiqueta,Peso,Costo,Importancia,Nuestro,Comp A
+CONFIG,Dirección,v,v,,
+CONFIG,Unidad,kg,USD,,
+RELACIONES,Fácil de usar,9,0,5,4,3
+RELACIONES,Económico,0,9,3,3,5
+TECHO,Peso,--,+,
+BENCHMARKING,Nuestro,2.2,12,,
+BENCHMARKING,Comp A,2.7,10,,
+`;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'plantilla-qfd.csv';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -569,7 +731,10 @@ export default function App() {
     const startX = reqW + impW;
     const startY = roofH + headerH;
     const matrixH = numReqs * rowH;
-    const footerH = 4 * rowH;
+    
+    // Footer rows: Target, Unit, Tech Header, numComps, Abs Weight, Rel Weight
+    const techHeaderH = rowH / 2;
+    const footerH = (2 * rowH) + techHeaderH + (numComps * rowH) + (2 * rowH);
 
     const totalW = Math.ceil(startX + (numChars * charW) + (numComps * compW) + profileW);
     const totalH = Math.ceil(startY + matrixH + footerH);
@@ -588,6 +753,7 @@ export default function App() {
       .text-req { font-size: 13px; fill: #334155; }
       .bg-header { fill: #f8fafc; }
       .bg-footer { fill: #f1f5f9; }
+      .bg-tech-header { fill: #e2e8f0; }
       .bg-cell { fill: #ffffff; }
     </style>`;
 
@@ -795,10 +961,51 @@ export default function App() {
 
     // 7. Footer Rows
     const footerStartY = startY + matrixH;
-    const labels = [t.target, t.unit, t.absWeight, `${t.relWeight} (%)`];
     
-    labels.forEach((label, i) => {
+    // Rows 1 & 2: Target & Unit
+    [t.target, t.unit].forEach((label, i) => {
       const y = footerStartY + i * rowH;
+      svg += `<rect x="0" y="${y}" width="${startX}" height="${rowH}" class="bg-footer line" />`;
+      svg += `<text x="${startX - 10}" y="${y + rowH/2 + 5}" text-anchor="end" class="text-md">${label}</text>`;
+      
+      characteristics.forEach((char, cIdx) => {
+        const x = startX + cIdx * charW;
+        const content = i === 0 ? escapeXml(char.targetValue || "-") : escapeXml(char.unit || "-");
+        svg += `<rect x="${x}" y="${y}" width="${charW}" height="${rowH}" class="bg-cell line" />`;
+        svg += `<text x="${x + charW/2}" y="${y + rowH/2 + 5}" text-anchor="middle" class="text-sm">${content}</text>`;
+      });
+
+      // Fill remaining space
+      svg += `<rect x="${compStartX}" y="${y}" width="${numComps * compW + profileW}" height="${rowH}" class="bg-footer line" />`;
+    });
+
+    // Row 3: Tech Benchmark Header
+    const techHeaderY = footerStartY + 2 * rowH;
+    svg += `<rect x="0" y="${techHeaderY}" width="${totalW}" height="${techHeaderH}" class="bg-tech-header line" />`;
+    svg += `<text x="${totalW/2}" y="${techHeaderY + techHeaderH/2 + 4}" text-anchor="middle" class="text-xs font-bold" fill="#475569">${escapeXml(t.techBenchmark).toUpperCase()}</text>`;
+
+    // Rows 4 to 4 + numComps: Tech Benchmarks
+    competitors.forEach((comp, cIdx) => {
+      const y = techHeaderY + techHeaderH + cIdx * rowH;
+      const color = getCompColor(cIdx);
+      svg += `<rect x="0" y="${y}" width="${startX}" height="${rowH}" class="bg-footer line" />`;
+      svg += `<text x="${startX - 10}" y="${y + rowH/2 + 5}" text-anchor="end" class="text-sm font-bold" fill="${color}">${escapeXml(comp.name)}</text>`;
+      
+      characteristics.forEach((char, charIdx) => {
+        const x = startX + charIdx * charW;
+        const benchmark = techBenchmarks.find(b => b.charId === char.id && b.compId === comp.id);
+        svg += `<rect x="${x}" y="${y}" width="${charW}" height="${rowH}" class="bg-cell line" />`;
+        svg += `<text x="${x + charW/2}" y="${y + rowH/2 + 5}" text-anchor="middle" class="text-sm">${escapeXml(benchmark?.value || "-")}</text>`;
+      });
+
+      // Fill remaining space
+      svg += `<rect x="${compStartX}" y="${y}" width="${numComps * compW + profileW}" height="${rowH}" class="bg-footer line" />`;
+    });
+
+    // Last 2 rows: Importance
+    const impStartY = techHeaderY + techHeaderH + numComps * rowH;
+    [t.absWeight, `${t.relWeight} (%)`].forEach((label, i) => {
+      const y = impStartY + i * rowH;
       svg += `<rect x="0" y="${y}" width="${startX}" height="${rowH}" class="bg-footer line" />`;
       svg += `<text x="${startX - 10}" y="${y + rowH/2 + 5}" text-anchor="end" class="text-md">${label}</text>`;
       
@@ -807,10 +1014,8 @@ export default function App() {
         let content = "";
         let bgColor = "#ffffff";
 
-        if (i === 0) content = escapeXml(char.targetValue || "-");
-        else if (i === 1) content = escapeXml(char.unit || "-");
-        else if (i === 2) content = (calculatedImportance[char.id]?.absolute || 0).toString();
-        else if (i === 3) {
+        if (i === 0) content = (calculatedImportance[char.id]?.absolute || 0).toString();
+        else if (i === 1) {
           const rel = calculatedImportance[char.id]?.relative || 0;
           content = (rel * 100).toFixed(1) + "%";
           bgColor = getRelativeColor(rel);
@@ -820,7 +1025,7 @@ export default function App() {
         svg += `<text x="${x + charW/2}" y="${y + rowH/2 + 5}" text-anchor="middle" class="text-sm">${content}</text>`;
       });
 
-      // Fill remaining space in footer
+      // Fill remaining space
       svg += `<rect x="${compStartX}" y="${y}" width="${numComps * compW + profileW}" height="${rowH}" class="bg-footer line" />`;
     });
 
@@ -850,12 +1055,134 @@ export default function App() {
         if (data.crossRelationships) setCrossRelationships(data.crossRelationships);
         if (data.competitors) setCompetitors(data.competitors);
         if (data.assessments) setAssessments(data.assessments);
+        if (data.techBenchmarks) setTechBenchmarks(data.techBenchmarks);
       } catch (err) {
         alert('Error al importar el archivo JSON.');
       }
     };
     reader.readAsText(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const importCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        const lines = content.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length < 1) return;
+
+        const header = lines[0].split(',');
+        const impIdx = header.indexOf('Importancia');
+        if (impIdx === -1) throw new Error('Invalid CSV format: Missing Importancia column');
+        
+        const charNames = header.slice(2, impIdx);
+        const compNames = header.slice(impIdx + 1);
+
+        const newChars: Characteristic[] = charNames.map(name => ({
+          id: generateId(),
+          text: name,
+          direction: 'max',
+          unit: '',
+          targetValue: ''
+        }));
+
+        const newComps: Competitor[] = compNames.map(name => ({
+          id: generateId(),
+          name: name
+        }));
+
+        const newReqs: Requirement[] = [];
+        const newRels: Relationship[] = [];
+        const newCrossRels: CrossRelationship[] = [];
+        const newAssessments: CompAssessment[] = [];
+        const newTechBenchmarks: TechnicalBenchmark[] = [];
+
+        lines.slice(1).forEach(line => {
+          const parts = line.split(',');
+          const section = parts[0];
+          const label = parts[1];
+
+          if (section === 'CONFIG') {
+            if (label === 'Dirección') {
+              parts.slice(2, 2 + newChars.length).forEach((val, i) => {
+                newChars[i].direction = val === '^' ? 'max' : val === 'v' ? 'min' : 'target';
+              });
+            } else if (label === 'Unidad') {
+              parts.slice(2, 2 + newChars.length).forEach((val, i) => {
+                newChars[i].unit = val;
+              });
+            } else if (label === 'Objetivo') {
+              parts.slice(2, 2 + newChars.length).forEach((val, i) => {
+                newChars[i].targetValue = val;
+              });
+            }
+          } else if (section === 'RELACIONES') {
+            const reqId = generateId();
+            const importance = parseInt(parts[2 + newChars.length]) || 3;
+            newReqs.push({ id: reqId, text: label, importance });
+
+            // Relationships
+            parts.slice(2, 2 + newChars.length).forEach((val, i) => {
+              const value = parseInt(val);
+              if (value > 0) {
+                newRels.push({ reqId, charId: newChars[i].id, value });
+              }
+            });
+
+            // Assessments
+            parts.slice(3 + newChars.length).forEach((val, i) => {
+              const value = parseInt(val);
+              if (value > 0) {
+                newAssessments.push({ reqId, compId: newComps[i].id, value });
+              }
+            });
+          } else if (section === 'TECHO') {
+            const char1Idx = newChars.findIndex(c => c.text === label);
+            if (char1Idx !== -1) {
+              parts.slice(2, 2 + newChars.length).forEach((val, i) => {
+                if (i > char1Idx) { // Only process upper triangle to avoid duplicates
+                  let value = 0;
+                  if (val === '++') value = 9;
+                  else if (val === '+') value = 3;
+                  else if (val === '-') value = -3;
+                  else if (val === '--') value = -9;
+                  
+                  if (value !== 0) {
+                    newCrossRels.push({ charId1: newChars[char1Idx].id, charId2: newChars[i].id, value });
+                  }
+                }
+              });
+            }
+          } else if (section === 'BENCHMARKING') {
+            const compIdx = newComps.findIndex(c => c.name === label);
+            if (compIdx !== -1) {
+              parts.slice(2, 2 + newChars.length).forEach((val, i) => {
+                if (val) {
+                  newTechBenchmarks.push({ charId: newChars[i].id, compId: newComps[compIdx].id, value: val });
+                }
+              });
+            }
+          }
+        });
+
+        setCharacteristics(newChars);
+        setCompetitors(newComps);
+        setRequirements(newReqs);
+        setRelationships(newRels);
+        setCrossRelationships(newCrossRels);
+        setAssessments(newAssessments);
+        setTechBenchmarks(newTechBenchmarks);
+
+      } catch (err) {
+        console.error(err);
+        alert('Error al importar el archivo CSV. Verifique el formato.');
+      }
+    };
+    reader.readAsText(file);
+    if (csvInputRef.current) csvInputRef.current.value = '';
   };
 
   return (
@@ -896,21 +1223,54 @@ export default function App() {
 
             <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
 
-            {/* Export/Import Group */}
-            <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-lg border border-slate-200">
-              <button onClick={() => fileInputRef.current?.click()} title={t.importJson} className="p-2 text-slate-600 hover:bg-white hover:text-indigo-600 rounded-md transition-all hover:shadow-sm" aria-label={t.importJson}>
-                <Upload size={18} />
+            {/* File Menu Dropdown */}
+            <div className="relative" ref={fileMenuRef}>
+              <button 
+                onClick={() => setShowFileMenu(!showFileMenu)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all shadow-sm border font-bold text-sm ${
+                  showFileMenu 
+                    ? 'bg-slate-800 text-white border-slate-800' 
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <FolderOpen size={18} />
+                {t.file}
+                <ChevronDown size={14} className={`transition-transform ${showFileMenu ? 'rotate-180' : ''}`} />
               </button>
-              <button onClick={exportData} title={t.exportJson} className="p-2 text-slate-600 hover:bg-white hover:text-indigo-600 rounded-md transition-all hover:shadow-sm" aria-label={t.exportJson}>
-                <Download size={18} />
-              </button>
-              <div className="w-px h-4 bg-slate-200 mx-1"></div>
-              <button onClick={exportImage} title={t.exportPng} className="p-2 text-slate-600 hover:bg-white hover:text-blue-600 rounded-md transition-all hover:shadow-sm" aria-label={t.exportPng}>
-                <ImageIcon size={18} />
-              </button>
-              <button onClick={exportNativeSvg} title={t.exportSvgBtn} className="p-2 text-slate-600 hover:bg-white hover:text-emerald-600 rounded-md transition-all hover:shadow-sm" aria-label={t.exportSvgBtn}>
-                <FileCode size={18} />
-              </button>
+              
+              {showFileMenu && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-slate-200 z-[110] py-2 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.import}</div>
+                  <button onClick={() => { fileInputRef.current?.click(); setShowFileMenu(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                    <Upload size={16} className="text-slate-400" />
+                    <span>{t.importJson}</span>
+                  </button>
+                  <button onClick={() => { csvInputRef.current?.click(); setShowFileMenu(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-amber-50 hover:text-amber-600 transition-colors">
+                    <Upload size={16} className="text-slate-400" />
+                    <span>{t.importCsv}</span>
+                  </button>
+                  
+                  <div className="my-1 border-t border-slate-100"></div>
+                  
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.export}</div>
+                  <button onClick={() => { exportData(); setShowFileMenu(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                    <Download size={16} className="text-slate-400" />
+                    <span>{t.exportJson}</span>
+                  </button>
+                  <button onClick={() => { exportCSV(); setShowFileMenu(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-amber-50 hover:text-amber-600 transition-colors">
+                    <Download size={16} className="text-slate-400" />
+                    <span>{t.exportCsv}</span>
+                  </button>
+                  <button onClick={() => { exportImage(); setShowFileMenu(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                    <ImageIcon size={16} className="text-slate-400" />
+                    <span>{t.exportPng}</span>
+                  </button>
+                  <button onClick={() => { exportNativeSvg(); setShowFileMenu(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 transition-colors">
+                    <FileCode size={16} className="text-slate-400" />
+                    <span>{t.exportSvgBtn}</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
@@ -930,28 +1290,144 @@ export default function App() {
               </button>
               
               {showHelp && (
-                <div className="absolute right-0 mt-3 w-80 md:w-96 bg-white rounded-xl shadow-2xl border border-slate-200 z-[100] p-5 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div className="flex items-center gap-2 mb-4 text-indigo-600 border-b border-slate-100 pb-3">
-                    <Info size={20} />
-                    <h3 className="font-bold text-lg">{t.howToUse}</h3>
-                  </div>
-                  <div className="max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-                    <ul className="list-disc pl-5 space-y-3 text-sm text-slate-600 mb-5">
-                      <li><strong className="text-slate-800">{t.editEverything}</strong></li>
-                      <li>{t.queDesc}</li>
-                      <li>{t.comoDesc}</li>
-                      <li>{t.relDesc}</li>
-                      <li>{t.roofDesc}</li>
-                      <li>{t.dirDesc}</li>
-                      <li>{t.compDesc}</li>
-                      <li>{t.impDesc}</li>
-                    </ul>
-                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-xs text-blue-800 leading-relaxed">
-                      <div className="flex gap-2 items-start">
-                        <span className="text-base leading-none">💡</span>
-                        <p><strong>{t.tip}:</strong> {t.tipDesc}</p>
-                      </div>
+                <div className="absolute right-0 mt-3 w-80 md:w-96 bg-white rounded-xl shadow-2xl border border-slate-200 z-[100] p-0 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/50">
+                    <div className="flex items-center gap-2 text-indigo-600">
+                      <Info size={20} />
+                      <h3 className="font-bold text-lg">{t.howToUse}</h3>
                     </div>
+                    <button onClick={() => setShowHelp(false)} className="text-slate-400 hover:text-slate-600">
+                      <Plus size={20} className="rotate-45" />
+                    </button>
+                  </div>
+
+                  <div className="flex border-b border-slate-100">
+                    <button 
+                      onClick={() => setHelpTab('general')}
+                      className={`flex-1 py-2.5 text-xs font-bold transition-colors ${helpTab === 'general' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/30' : 'text-slate-500 hover:bg-slate-50'}`}
+                    >
+                      {t.generalHelp}
+                    </button>
+                    <button 
+                      onClick={() => setHelpTab('csv')}
+                      className={`flex-1 py-2.5 text-xs font-bold transition-colors ${helpTab === 'csv' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/30' : 'text-slate-500 hover:bg-slate-50'}`}
+                    >
+                      {t.csvGuide}
+                    </button>
+                  </div>
+
+                  <div className="max-h-[60vh] overflow-y-auto p-5 custom-scrollbar">
+                    {helpTab === 'general' ? (
+                      <>
+                        <ul className="list-disc pl-5 space-y-3 text-sm text-slate-600 mb-5">
+                          <li><strong className="text-slate-800">{t.editEverything}</strong></li>
+                          <li>{t.queDesc}</li>
+                          <li>{t.comoDesc}</li>
+                          <li>{t.relDesc}</li>
+                          <li>{t.roofDesc}</li>
+                          <li>{t.dirDesc}</li>
+                          <li>{t.compDesc}</li>
+                          <li>{t.impDesc}</li>
+                        </ul>
+                        
+                        <div className="space-y-3">
+                          <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-xs text-blue-800 leading-relaxed">
+                            <div className="flex gap-2 items-start">
+                              <span className="text-base leading-none">💡</span>
+                              <p><strong>{t.tip}:</strong> {t.tipDesc}</p>
+                            </div>
+                          </div>
+
+                          <div className="bg-amber-50 p-4 rounded-lg border border-amber-100 text-xs text-amber-800 leading-relaxed">
+                            <div className="flex flex-col gap-3">
+                              <div className="flex gap-2 items-start">
+                                <span className="text-base leading-none">✨</span>
+                                <p><strong>{t.tip}:</strong> {t.tipCsv}</p>
+                              </div>
+                              <button 
+                                onClick={() => setHelpTab('csv')}
+                                className="flex items-center justify-center gap-2 py-2 bg-amber-600 text-white rounded-lg font-bold hover:bg-amber-700 transition-colors shadow-sm"
+                              >
+                                <FileCode size={14} />
+                                {t.viewCsvGuide}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="space-y-6">
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                            <FileCode size={16} className="text-indigo-600" />
+                            {t.csvExample}
+                          </h4>
+                          <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                            <table className="w-full text-[10px] text-left border-collapse">
+                              <thead className="bg-slate-50">
+                                <tr>
+                                  {getCSVData()[0].map((cell, i) => (
+                                    <th key={i} className="p-1.5 border-b border-r border-slate-200 font-bold text-slate-500 whitespace-nowrap">{cell}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {getCSVData().slice(1, 6).map((row, i) => (
+                                  <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}>
+                                    {row.map((cell, j) => (
+                                      <td key={j} className="p-1.5 border-b border-r border-slate-200 text-slate-600 whitespace-nowrap">{cell}</td>
+                                    ))}
+                                  </tr>
+                                ))}
+                                <tr>
+                                  <td colSpan={getCSVData()[0].length} className="p-1.5 text-center text-slate-400 italic bg-white">...</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <p className="text-sm text-slate-600 font-medium">{t.csvIntro}</p>
+                          
+                          <div className="space-y-3">
+                            <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                              <div className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-1">CONFIG</div>
+                              <p className="text-xs text-slate-600">{t.csvConfig}</p>
+                            </div>
+                            <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                              <div className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-1">RELACIONES</div>
+                              <p className="text-xs text-slate-600">{t.csvRel}</p>
+                            </div>
+                            <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                              <div className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-1">TECHO</div>
+                              <p className="text-xs text-slate-600">{t.csvRoof}</p>
+                            </div>
+                            <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                              <div className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-1">BENCHMARKING</div>
+                              <p className="text-xs text-slate-600">{t.csvBench}</p>
+                            </div>
+                          </div>
+
+                          <div className="p-3 bg-amber-50 rounded-lg border border-amber-100">
+                            <div className="text-[10px] font-bold text-amber-800 uppercase tracking-widest mb-2">{t.csvSymbols}</div>
+                            <ul className="space-y-1 text-[11px] text-amber-900 leading-relaxed">
+                              <li>• <strong>{t.csvSymbolDir}</strong></li>
+                              <li>• <strong>{t.csvSymbolRel}</strong></li>
+                              <li>• <strong>{t.csvSymbolRoof}</strong></li>
+                            </ul>
+                          </div>
+
+                          <button 
+                            onClick={downloadCsvTemplate}
+                            className="w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-600 text-white rounded-lg font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm"
+                          >
+                            <Download size={16} />
+                            {language === 'es' ? 'Descargar Plantilla CSV' : 'Download CSV Template'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1323,6 +1799,35 @@ export default function App() {
                   ))}
                   <td colSpan={competitors.length + 1} className="border-b border-slate-200 bg-slate-50"></td>
                 </tr>
+
+                {/* Technical Benchmarking Section */}
+                <tr>
+                  <td colSpan={characteristics.length + competitors.length + 3} className="bg-slate-200 p-1 text-[10px] font-bold text-slate-600 uppercase tracking-wider text-center">
+                    {t.techBenchmark}
+                  </td>
+                </tr>
+                {competitors.map((comp, cIdx) => (
+                  <tr key={`tech-bench-${comp.id}`}>
+                    <td colSpan={2} className="border-b border-r border-slate-200 p-2 bg-slate-50 text-right text-xs font-bold" style={{ color: getCompColor(cIdx) }}>
+                      {comp.name}
+                    </td>
+                    {characteristics.map(c => {
+                      const benchmark = techBenchmarks.find(b => b.charId === c.id && b.compId === comp.id);
+                      return (
+                        <td key={`tech-val-${comp.id}-${c.id}`} className="border-b border-r border-slate-200 p-1 bg-white text-center">
+                          <input
+                            value={benchmark?.value || ''}
+                            onChange={e => updateTechBenchmark(c.id, comp.id, e.target.value)}
+                            className="w-full bg-transparent focus:outline-none text-center text-xs font-medium text-slate-700"
+                            placeholder="-"
+                          />
+                        </td>
+                      );
+                    })}
+                    <td colSpan={competitors.length + 1} className="border-b border-slate-200 bg-slate-50"></td>
+                  </tr>
+                ))}
+
                 <tr>
                   <td colSpan={2} className="border-b border-r border-slate-200 p-3 bg-slate-100 text-right font-bold text-slate-700">{t.absWeight}</td>
                   {characteristics.map(c => (
@@ -1361,6 +1866,7 @@ export default function App() {
         
         <div className="hidden">
           <input type="file" accept=".json" className="hidden" ref={fileInputRef} onChange={importData} />
+          <input type="file" accept=".csv" className="hidden" ref={csvInputRef} onChange={importCSV} />
         </div>
 
         <footer className="mt-12 mb-8 flex flex-col items-center justify-center text-slate-500 text-sm space-y-3">
