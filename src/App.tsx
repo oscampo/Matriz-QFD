@@ -123,14 +123,16 @@ const translations = {
     csvGuide: "Guía CSV",
     generalHelp: "Ayuda General",
     csvIntro: "Estructura el archivo CSV con estas 4 secciones:",
-    csvConfig: "CONFIG: Metas técnicas (Dirección, Unidad, Objetivo).",
-    csvRel: "RELACIONES: Requerimientos, importancia y evaluación competitiva.",
-    csvRoof: "TECHO: Correlaciones cruzadas entre características.",
+    csvConfig: "CONFIG: Metas técnicas (Direction, Unit, Target).",
+    csvRel: "RELATIONS: Requerimientos, Importance y evaluación competitiva.",
+    csvRoof: "ROOF: Correlaciones cruzadas entre características.",
     csvBench: "BENCHMARKING: Valores reales de la competencia.",
+    csvRoofDetail: "IMPORTANTE: En la sección ROOF, usa \"x\" en las correlaciones entre características técnicas iguales:",
+    csvRoofRef: "Para más referencia, revisa arriba el Ejemplo de archivo CSV. No es necesario llenar 2 veces la relación entre 2 características del techo.",
     csvSymbols: "Símbolos",
     csvSymbolDir: "Dirección de Mejora: \"^\"(Max), \"v\"(Min), \"o\"(Obj)",
     csvSymbolRel: "Importancia Relativa: \"9\" Fuerte, \"3\" Moderada, \"1\" Débil",
-    csvSymbolRoof: "Correlaciones Techo: \"++\", \"+\", \"0\", \"-\", \"--\"",
+    csvSymbolRoof: "Correlaciones Techo: \"++\", \"+\", \"0\", \"-\", \"--\", \"x\" (Diagonal)",
     license: "Esta obra está bajo una Licencia Creative Commons Atribución-NoComercial 4.0 Internacional. Es de uso libre mencionando al autor y no se permite su comercialización."
   },
   en: {
@@ -200,13 +202,15 @@ const translations = {
     generalHelp: "General Help",
     csvIntro: "Structure the CSV file with these 4 sections:",
     csvConfig: "CONFIG: Technical goals (Direction, Unit, Target).",
-    csvRel: "RELATIONS: Requirements, importance, and competitive evaluation.",
+    csvRel: "RELATIONS: Requirements, Importance, and competitive evaluation.",
     csvRoof: "ROOF: Cross-correlations between characteristics.",
     csvBench: "BENCHMARKING: Actual competitor values.",
+    csvRoofDetail: "IMPORTANT: In the ROOF section, use \"x\" for correlations between identical technical characteristics:",
+    csvRoofRef: "For more reference, check the CSV file example above. It is not necessary to fill the relationship between 2 roof characteristics twice.",
     csvSymbols: "Symbols",
     csvSymbolDir: "Improvement Direction: \"^\"(Max), \"v\"(Min), \"o\"(Obj)",
     csvSymbolRel: "Relative Importance: \"9\" Strong, \"3\" Moderate, \"1\" Weak",
-    csvSymbolRoof: "Roof Correlations: \"++\", \"+\", \"0\", \"-\", \"--\"",
+    csvSymbolRoof: "Roof Correlations: \"++\", \"+\", \"0\", \"-\", \"--\", \"x\" (Diagonal)",
     warning: "Warning",
     deleteWarning: "This action will delete the entire row/column and all associated relationships. This cannot be undone.",
     yesDelete: "Yes, delete",
@@ -577,19 +581,19 @@ export default function App() {
     const rows: string[][] = [];
     
     // Header
-    rows.push(['Sección', 'Etiqueta', ...charNames, 'Importancia', ...compNames]);
+    rows.push(['Section', 'Label', ...charNames, 'Importance', ...compNames]);
     
     // CONFIG
     const directions = characteristics.map(c => c.direction === 'max' ? '^' : c.direction === 'min' ? 'v' : 'o');
-    rows.push(['CONFIG', 'Dirección', ...directions, '', ...compNames.map(() => '')]);
+    rows.push(['CONFIG', 'Direction', ...directions, '', ...compNames.map(() => '')]);
     
     const units = characteristics.map(c => c.unit || '');
-    rows.push(['CONFIG', 'Unidad', ...units, '', ...compNames.map(() => '')]);
+    rows.push(['CONFIG', 'Unit', ...units, '', ...compNames.map(() => '')]);
     
     const targets = characteristics.map(c => c.targetValue || '');
-    rows.push(['CONFIG', 'Objetivo', ...targets, '', ...compNames.map(() => '')]);
+    rows.push(['CONFIG', 'Target', ...targets, '', ...compNames.map(() => '')]);
     
-    // RELACIONES (Requirements)
+    // RELATIONS (Requirements)
     requirements.forEach(req => {
       const relValues = characteristics.map(char => {
         const rel = relationships.find(r => r.reqId === req.id && r.charId === char.id);
@@ -599,18 +603,20 @@ export default function App() {
         const ass = assessments.find(a => a.reqId === req.id && a.compId === comp.id);
         return ass ? ass.value.toString() : '0';
       });
-      rows.push(['RELACIONES', req.text, ...relValues, req.importance.toString(), ...compValues]);
+      rows.push(['RELATIONS', req.text, ...relValues, req.importance.toString(), ...compValues]);
     });
     
-    // TECHO (Roof)
-    characteristics.forEach(char1 => {
-      const crossValues = characteristics.map(char2 => {
-        if (char1.id === char2.id) return '--';
+    // ROOF (Roof)
+    characteristics.forEach((char1, idx1) => {
+      const crossValues = characteristics.map((char2, idx2) => {
+        if (idx1 === idx2) return 'x';
+        if (idx2 < idx1) return ''; // Matriz triangular superior
+        
         const [id1, id2] = char1.id < char2.id ? [char1.id, char2.id] : [char2.id, char1.id];
         const rel = crossRelationships.find(r => r.charId1 === id1 && r.charId2 === id2);
         return rel ? getCrossRelSymbol(rel.value) : '0';
       });
-      rows.push(['TECHO', char1.text, ...crossValues, '', ...compNames.map(() => '')]);
+      rows.push(['ROOF', char1.text, ...crossValues, '', ...compNames.map(() => '')]);
     });
     
     // BENCHMARKING (Technical Benchmarks)
@@ -639,14 +645,18 @@ export default function App() {
   };
 
   const downloadCsvTemplate = () => {
-    const csv = `Sección,Etiqueta,Peso,Costo,Importancia,Nuestro,Comp A
-CONFIG,Dirección,v,v,,
-CONFIG,Unidad,kg,USD,,
-RELACIONES,Fácil de usar,9,0,5,4,3
-RELACIONES,Económico,0,9,3,3,5
-TECHO,Peso,--,+,
-BENCHMARKING,Nuestro,2.2,12,,
-BENCHMARKING,Comp A,2.7,10,,
+    const csv = `Section,Label,Peso,Resistencia,Costo,Importance,Nuestro,Comp A
+CONFIG,Direction,^,v,^,,,
+CONFIG,Unit,kg,MPa,USD,,,
+CONFIG,Target,<2.5,>250,<15,,,
+RELATIONS,Fácil de usar,3,0,0,5,4,3
+RELATIONS,Duradero,0,9,0,4,5,4
+RELATIONS,Económico,0,0,9,3,3,5
+ROOF,Peso,x,-,0,,,
+ROOF,Resistencia,,x,++,,,
+ROOF,Costo,,,x,,,
+BENCHMARKING,Nuestro,2.2,280,12,,,
+BENCHMARKING,Comp A,2.7,240,10,,,
 `;
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -1075,8 +1085,8 @@ BENCHMARKING,Comp A,2.7,10,,
         if (lines.length < 1) return;
 
         const header = lines[0].split(',');
-        const impIdx = header.indexOf('Importancia');
-        if (impIdx === -1) throw new Error('Invalid CSV format: Missing Importancia column');
+        const impIdx = header.indexOf('Importance') !== -1 ? header.indexOf('Importance') : header.indexOf('Importancia');
+        if (impIdx === -1) throw new Error('Invalid CSV format: Missing Importance column');
         
         const charNames = header.slice(2, impIdx);
         const compNames = header.slice(impIdx + 1);
@@ -1106,20 +1116,20 @@ BENCHMARKING,Comp A,2.7,10,,
           const label = parts[1];
 
           if (section === 'CONFIG') {
-            if (label === 'Dirección') {
+            if (label === 'Direction' || label === 'Dirección') {
               parts.slice(2, 2 + newChars.length).forEach((val, i) => {
                 newChars[i].direction = val === '^' ? 'max' : val === 'v' ? 'min' : 'target';
               });
-            } else if (label === 'Unidad') {
+            } else if (label === 'Unit' || label === 'Unidad') {
               parts.slice(2, 2 + newChars.length).forEach((val, i) => {
                 newChars[i].unit = val;
               });
-            } else if (label === 'Objetivo') {
+            } else if (label === 'Target' || label === 'Objetivo') {
               parts.slice(2, 2 + newChars.length).forEach((val, i) => {
                 newChars[i].targetValue = val;
               });
             }
-          } else if (section === 'RELACIONES') {
+          } else if (section === 'RELATIONS' || section === 'RELACIONES') {
             const reqId = generateId();
             const importance = parseInt(parts[2 + newChars.length]) || 3;
             newReqs.push({ id: reqId, text: label, importance });
@@ -1139,7 +1149,7 @@ BENCHMARKING,Comp A,2.7,10,,
                 newAssessments.push({ reqId, compId: newComps[i].id, value });
               }
             });
-          } else if (section === 'TECHO') {
+          } else if (section === 'ROOF' || section === 'TECHO') {
             const char1Idx = newChars.findIndex(c => c.text === label);
             if (char1Idx !== -1) {
               parts.slice(2, 2 + newChars.length).forEach((val, i) => {
@@ -1372,7 +1382,7 @@ BENCHMARKING,Comp A,2.7,10,,
                                 </tr>
                               </thead>
                               <tbody>
-                                {getCSVData().slice(1, 6).map((row, i) => (
+                                {getCSVData().slice(1, 12).map((row, i) => (
                                   <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}>
                                     {row.map((cell, j) => (
                                       <td key={j} className="p-1.5 border-b border-r border-slate-200 text-slate-600 whitespace-nowrap">{cell}</td>
@@ -1400,8 +1410,49 @@ BENCHMARKING,Comp A,2.7,10,,
                               <p className="text-xs text-slate-600">{t.csvRel}</p>
                             </div>
                             <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                              <div className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-1">TECHO</div>
-                              <p className="text-xs text-slate-600">{t.csvRoof}</p>
+                              <div className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-1">ROOF</div>
+                              <p className="text-xs text-slate-600 mb-3">{t.csvRoof}</p>
+                              
+                              <div className="bg-white border border-slate-200 rounded p-2 mb-2">
+                                <p className="text-[10px] text-slate-500 mb-2 font-medium">{t.csvRoofDetail}</p>
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-[9px] text-left border-collapse">
+                                    <thead>
+                                      <tr className="bg-slate-50">
+                                        <th className="p-1 border border-slate-200 font-bold">Section</th>
+                                        <th className="p-1 border border-slate-200 font-bold">Label</th>
+                                        <th className="p-1 border border-slate-200 font-bold">Peso</th>
+                                        <th className="p-1 border border-slate-200 font-bold">Resistencia</th>
+                                        <th className="p-1 border border-slate-200 font-bold">...</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      <tr>
+                                        <td className="p-1 border border-slate-200">ROOF</td>
+                                        <td className="p-1 border border-slate-200 font-medium">Peso</td>
+                                        <td className="p-1 border border-slate-200 text-center font-bold text-indigo-600">x</td>
+                                        <td className="p-1 border border-slate-200 text-center">-</td>
+                                        <td className="p-1 border border-slate-200 text-center">o</td>
+                                      </tr>
+                                      <tr>
+                                        <td className="p-1 border border-slate-200">ROOF</td>
+                                        <td className="p-1 border border-slate-200 font-medium">Resistencia</td>
+                                        <td className="p-1 border border-slate-200 bg-slate-50/50"></td>
+                                        <td className="p-1 border border-slate-200 text-center font-bold text-indigo-600">x</td>
+                                        <td className="p-1 border border-slate-200 text-center">++</td>
+                                      </tr>
+                                      <tr>
+                                        <td className="p-1 border border-slate-200">ROOF</td>
+                                        <td className="p-1 border border-slate-200 font-medium">...</td>
+                                        <td className="p-1 border border-slate-200 bg-slate-50/50"></td>
+                                        <td className="p-1 border border-slate-200 bg-slate-50/50"></td>
+                                        <td className="p-1 border border-slate-200 text-center font-bold text-indigo-600">x</td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </div>
+                                <p className="text-[9px] text-slate-400 mt-2 italic">{t.csvRoofRef}</p>
+                              </div>
                             </div>
                             <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                               <div className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-1">BENCHMARKING</div>
