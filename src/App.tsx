@@ -934,7 +934,7 @@ export default function App() {
               </div>
               <div className="w-px h-8 bg-slate-100 hidden md:block"></div>
               <div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">{language === 'es' ? 'Techo' : 'Roof'} (CÓMO vs CÓMO)</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">{language === 'es' ? 'Techo' : 'Roof'} ({t.como} vs {t.como})</div>
                 <div className="flex gap-3 flex-wrap text-xs">
                   <div className="flex items-center gap-1.5"><span className="font-bold text-emerald-700 bg-emerald-50 w-7 h-6 flex items-center justify-center rounded">++</span> <span className="text-slate-600">{t.strongPos}</span></div>
                   <div className="flex items-center gap-1.5"><span className="font-bold text-emerald-600 bg-emerald-50 w-6 h-6 flex items-center justify-center rounded">+</span> <span className="text-slate-600">{t.pos}</span></div>
