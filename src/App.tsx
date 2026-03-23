@@ -1120,7 +1120,7 @@ export default function App() {
                     <th key={`comp-${comp.id}`} className="border-b border-r border-slate-200 p-2 bg-slate-50 text-center w-12 align-bottom group relative">
                       <div className="flex flex-col items-center justify-end h-full w-full mx-auto">
                         <div className="flex items-center gap-1 mb-1">
-                          <div className={`w-2 h-2 ${comp.name === 'Nuestro' ? 'clip-triangle' : 'rounded-full'}`} style={{ backgroundColor: getCompColor(idx) }}></div>
+                          <div className={`w-2 h-2 ${comp.name === 'Nuestro' ? 'clip-triangle' : 'clip-triangle'}`} style={{ backgroundColor: getCompColor(idx) }}></div>
                         </div>
                         <input
                           value={comp.name}
