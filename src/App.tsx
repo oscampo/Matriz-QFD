@@ -328,7 +328,7 @@ export default function App() {
 
   const getRelSymbol = (value: number, forSvg: boolean = false) => {
     switch (value) {
-      case 9: return '⏺';
+      case 9: return '●';
       case 3: return forSvg ? '◯' : '○';
       case 1: return '△';
       default: return '';
