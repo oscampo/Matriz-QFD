@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Plus, Trash2, ArrowUp, ArrowDown, Target, Download, Upload, Info, Image as ImageIcon, AlertTriangle, FileCode } from 'lucide-react';
+import { Plus, Trash2, ArrowUp, ArrowDown, Target, Download, Upload, Info, Image as ImageIcon, AlertTriangle, FileCode, HelpCircle } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 
 type Requirement = {
@@ -41,17 +41,165 @@ type CompAssessment = {
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
+const translations = {
+  es: {
+    title: "Casa de la Calidad (QFD)",
+    addReq: "Añadir Requerimiento",
+    addChar: "Añadir Característica",
+    addComp: "Añadir Competidor",
+    exportImg: "Exportar Imagen",
+    exportSvg: "Exportar SVG",
+    importJson: "Importar JSON",
+    exportJson: "Exportar JSON",
+    reqHeader: "Requerimientos del Cliente (QUÉ)",
+    impHeader: "Imp.",
+    charHeader: "Características Técnicas (CÓMO)",
+    compEval: "Evaluación Competitiva (1-5)",
+    compProfile: "Perfil Competitivo",
+    que: "QUÉ",
+    como: "CÓMO",
+    direction: "Dirección de mejora",
+    unit: "Unidad",
+    target: "Valor Objetivo",
+    relWeight: "Importancia Relativa",
+    absWeight: "Importancia Absoluta",
+    confirmDelete: "Confirmar eliminación",
+    deleteMsg: "¿Estás seguro de que deseas eliminar",
+    cancel: "Cancelar",
+    delete: "Eliminar",
+    newReq: "Nuevo Requerimiento",
+    newChar: "Nueva Característica",
+    newComp: "Nuevo Competidor",
+    our: "Nuestro",
+    compA: "Comp. A",
+    easyToUse: "Fácil de usar",
+    durable: "Duradero",
+    economical: "Económico",
+    weight: "Peso",
+    resistance: "Resistencia material",
+    cost: "Costo de producción",
+    howToUse: "¿Cómo usar esta matriz QFD?",
+    editEverything: "¡Todo es editable!: Haz clic o toca directamente sobre cualquier texto o número para modificarlo.",
+    queDesc: "QUÉ (Requerimientos del Cliente): Lista lo que el cliente desea. Asigna una importancia del 1 al 5.",
+    comoDesc: "CÓMO (Requerimientos Técnicos): Lista cómo vas a satisfacer esos requerimientos mediante especificaciones técnicas.",
+    relDesc: "Relaciones: Haz clic en las celdas centrales para establecer la correlación (⏺=9, ○=3, △=1).",
+    roofDesc: "Techo: Establece las correlaciones cruzadas entre las características técnicas (++, +, -, --).",
+    dirDesc: "Dirección de Mejora: Indica si la característica debe maximizarse (↑), minimizarse (↓) o alcanzar un objetivo (◎).",
+    compDesc: "Evaluación Competitiva: Compara tu desempeño con la competencia (1-5) para visualizar el Perfil Competitivo.",
+    impDesc: "Importancia Absoluta y Relativa: Se calculan automáticamente basándose en las relaciones y la importancia del cliente.",
+    exportPng: "Descargar PNG (Alta Res)",
+    exportSvgBtn: "Descargar SVG Nativo",
+    strong: "Fuerte",
+    moderate: "Moderada",
+    weak: "Débil",
+    strongPos: "Fuerte Positiva",
+    pos: "Positiva",
+    neg: "Negativa",
+    strongNeg: "Fuerte Negativa",
+    maximize: "Maximizar",
+    minimize: "Minimizar",
+    targetLabel: "Objetivo",
+    warning: "Advertencia",
+    deleteWarning: "Esta acción eliminará toda la fila/columna y todas las relaciones asociadas. No se puede deshacer.",
+    yesDelete: "Sí, eliminar",
+    tip: "Tip",
+    tipDesc: "Cuando trabajes en tu matriz, puedes descargar la versión .json para seguir editando después. Exporta a PNG o SVG para tu documentación.",
+    developedBy: "Desarrollado por el",
+    license: "Esta obra está bajo una Licencia Creative Commons Atribución-NoComercial 4.0 Internacional. Es de uso libre mencionando al autor y no se permite su comercialización."
+  },
+  en: {
+    title: "House of Quality (QFD)",
+    addReq: "Add Requirement",
+    addChar: "Add Technical Metric",
+    addComp: "Add Competitor",
+    exportImg: "Export Image",
+    exportSvg: "Export SVG",
+    importJson: "Import JSON",
+    exportJson: "Export JSON",
+    reqHeader: "Customer Requirements (WHAT)",
+    impHeader: "Imp.",
+    charHeader: "Technical Characteristics (HOW)",
+    compEval: "Competitive Evaluation (1-5)",
+    compProfile: "Competitive Profile",
+    que: "WHAT",
+    como: "HOW",
+    direction: "Direction of improvement",
+    unit: "Unit",
+    target: "Target Value",
+    relWeight: "Relative Importance",
+    absWeight: "Absolute Importance",
+    confirmDelete: "Confirm Deletion",
+    deleteMsg: "Are you sure you want to delete",
+    cancel: "Cancel",
+    delete: "Delete",
+    newReq: "New Requirement",
+    newChar: "New Technical Metric",
+    newComp: "New Competitor",
+    our: "Ours",
+    compA: "Comp. A",
+    easyToUse: "Easy to use",
+    durable: "Durable",
+    economical: "Economical",
+    weight: "Weight",
+    resistance: "Material resistance",
+    cost: "Production cost",
+    howToUse: "How to use this QFD matrix?",
+    editEverything: "Everything is editable!: Click or tap directly on any text or number to modify it.",
+    queDesc: "WHAT (Customer Requirements): List what the customer wants. Assign an importance from 1 to 5.",
+    comoDesc: "HOW (Technical Requirements): List how you will satisfy those requirements through technical specifications.",
+    relDesc: "Relationships: Click on the central cells to establish correlation (⏺=9, ○=3, △=1).",
+    roofDesc: "Roof: Establish cross-correlations between technical characteristics (++, +, -, --).",
+    dirDesc: "Direction of Improvement: Indicate if the characteristic should be maximized (↑), minimized (↓) or reach a target (◎).",
+    compDesc: "Competitive Evaluation: Compare your performance with the competition (1-5) to visualize the Competitive Profile.",
+    impDesc: "Absolute and Relative Importance: Automatically calculated based on relationships and customer importance.",
+    exportPng: "Download PNG (High Res)",
+    exportSvgBtn: "Download Native SVG",
+    strong: "Strong",
+    moderate: "Moderate",
+    weak: "Weak",
+    strongPos: "Strong Positive",
+    pos: "Positive",
+    neg: "Negative",
+    strongNeg: "Strong Negative",
+    maximize: "Maximize",
+    minimize: "Minimize",
+    targetLabel: "Target",
+    warning: "Warning",
+    deleteWarning: "This action will delete the entire row/column and all associated relationships. This cannot be undone.",
+    yesDelete: "Yes, delete",
+    tip: "Tip",
+    tipDesc: "When working on your matrix, you can download the .json version to continue editing later. Export to PNG or SVG for your documentation.",
+    developedBy: "Developed by",
+    license: "This work is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License. It is free to use mentioning the author and commercialization is not allowed."
+  }
+};
+
 export default function App() {
+  const [language, setLanguage] = useState<'es' | 'en'>('es');
+  const [showHelp, setShowHelp] = useState(false);
+  const t = translations[language];
+  const helpRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (helpRef.current && !helpRef.current.contains(event.target as Node)) {
+        setShowHelp(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const [requirements, setRequirements] = useState<Requirement[]>([
-    { id: 'r1', text: 'Fácil de usar', importance: 5 },
-    { id: 'r2', text: 'Duradero', importance: 4 },
-    { id: 'r3', text: 'Económico', importance: 3 },
+    { id: 'r1', text: t.easyToUse, importance: 5 },
+    { id: 'r2', text: t.durable, importance: 4 },
+    { id: 'r3', text: t.economical, importance: 3 },
   ]);
 
   const [characteristics, setCharacteristics] = useState<Characteristic[]>([
-    { id: 'c1', text: 'Peso', direction: 'min', unit: 'kg', targetValue: '< 2.5' },
-    { id: 'c2', text: 'Resistencia material', direction: 'max', unit: 'MPa', targetValue: '> 250' },
-    { id: 'c3', text: 'Costo de producción', direction: 'min', unit: 'USD', targetValue: '< 15' },
+    { id: 'c1', text: t.weight, direction: 'min', unit: 'kg', targetValue: '< 2.5' },
+    { id: 'c2', text: t.resistance, direction: 'max', unit: 'MPa', targetValue: '> 250' },
+    { id: 'c3', text: t.cost, direction: 'min', unit: 'USD', targetValue: '< 15' },
   ]);
 
   const [relationships, setRelationships] = useState<Relationship[]>([
@@ -66,13 +214,43 @@ export default function App() {
   ]);
 
   const [competitors, setCompetitors] = useState<Competitor[]>([
-    { id: 'comp1', name: 'Nuestro' },
-    { id: 'comp2', name: 'Comp. A' },
+    { id: 'comp1', name: t.our },
+    { id: 'comp2', name: t.compA },
   ]);
+
+  useEffect(() => {
+    // Translate example data if it hasn't been modified significantly
+    const prevLang = language === 'es' ? 'en' : 'es';
+    const pt = translations[prevLang];
+    
+    setRequirements(prev => prev.map(r => {
+      if (r.text === pt.easyToUse) return { ...r, text: t.easyToUse };
+      if (r.text === pt.durable) return { ...r, text: t.durable };
+      if (r.text === pt.economical) return { ...r, text: t.economical };
+      return r;
+    }));
+
+    setCharacteristics(prev => prev.map(c => {
+      if (c.text === pt.weight) return { ...c, text: t.weight };
+      if (c.text === pt.resistance) return { ...c, text: t.resistance };
+      if (c.text === pt.cost) return { ...c, text: t.cost };
+      return c;
+    }));
+
+    setCompetitors(prev => prev.map(c => {
+      if (c.name === pt.our) return { ...c, name: t.our };
+      if (c.name === pt.compA) return { ...c, name: t.compA };
+      return c;
+    }));
+  }, [language, t]);
 
   const [assessments, setAssessments] = useState<CompAssessment[]>([
     { reqId: 'r1', compId: 'comp1', value: 4 },
     { reqId: 'r1', compId: 'comp2', value: 3 },
+    { reqId: 'r2', compId: 'comp1', value: 5 },
+    { reqId: 'r2', compId: 'comp2', value: 4 },
+    { reqId: 'r3', compId: 'comp1', value: 3 },
+    { reqId: 'r3', compId: 'comp2', value: 5 },
   ]);
 
   const [hoveredCrossRel, setHoveredCrossRel] = useState<{charId1: string, charId2: string} | null>(null);
@@ -81,6 +259,25 @@ export default function App() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const matrixRef = useRef<HTMLDivElement>(null);
+
+  const getRelSymbol = (value: number, forSvg: boolean = false) => {
+    switch (value) {
+      case 9: return '⏺';
+      case 3: return forSvg ? '◯' : '○';
+      case 1: return '△';
+      default: return '';
+    }
+  };
+
+  const getCrossRelSymbol = (value: number) => {
+    switch (value) {
+      case 9: return '++';
+      case 3: return '+';
+      case -3: return '-';
+      case -9: return '--';
+      default: return '';
+    }
+  };
 
   const getHeatmapColor = (value: number | null | undefined) => {
     if (!value) return 'bg-white';
@@ -95,7 +292,7 @@ export default function App() {
   };
 
   const addRequirement = () => {
-    setRequirements([...requirements, { id: generateId(), text: 'Nuevo Requerimiento', importance: 3 }]);
+    setRequirements([...requirements, { id: generateId(), text: t.newReq, importance: 3 }]);
   };
 
   const updateRequirement = (id: string, field: keyof Requirement, value: any) => {
@@ -107,7 +304,7 @@ export default function App() {
   };
 
   const addCharacteristic = () => {
-    setCharacteristics([...characteristics, { id: generateId(), text: 'Nueva Característica', direction: 'max', unit: '-', targetValue: '' }]);
+    setCharacteristics([...characteristics, { id: generateId(), text: t.newChar, direction: 'max', unit: '-', targetValue: '' }]);
   };
 
   const updateCharacteristic = (id: string, field: keyof Characteristic, value: any) => {
@@ -326,12 +523,26 @@ export default function App() {
     }
   };
 
+  const escapeXml = (unsafe: string) => {
+    if (!unsafe) return "";
+    return unsafe.toString().replace(/[<>&'"]/g, (c) => {
+      switch (c) {
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '&': return '&amp;';
+        case '\'': return '&apos;';
+        case '"': return '&quot;';
+        default: return c;
+      }
+    });
+  };
+
   const exportNativeSvg = () => {
     const charW = 64;
     const rowH = 48;
-    const reqW = 250;
-    const impW = 48;
-    const compW = 64;
+    const reqW = 256;
+    const impW = 80;
+    const compW = 96;
     const profileW = 250;
 
     const numReqs = requirements.length;
@@ -339,19 +550,24 @@ export default function App() {
     const numComps = competitors.length;
 
     const roofH = numChars * 32;
-    const headerH = 200;
+    const dirH = 48;
+    const mainHeaderH = 192;
+    const headerH = dirH + mainHeaderH;
     
     const startX = reqW + impW;
     const startY = roofH + headerH;
     const matrixH = numReqs * rowH;
     const footerH = 4 * rowH;
 
-    const totalW = startX + (numChars * charW) + (numComps * compW) + profileW;
-    const totalH = startY + matrixH + footerH;
+    const totalW = Math.ceil(startX + (numChars * charW) + (numComps * compW) + profileW);
+    const totalH = Math.ceil(startY + matrixH + footerH);
 
-    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalW} ${totalH}" width="${totalW}" height="${totalH}" style="background: white; font-family: Arial, sans-serif;">`;
+    let svg = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalW} ${totalH}" width="${totalW}" height="${totalH}" text-rendering="geometricPrecision">`;
 
+    svg += `<rect x="0" y="0" width="${totalW}" height="${totalH}" fill="white" />`;
     svg += `<style>
+      svg { font-family: Arial, sans-serif; }
       .line { stroke: #cbd5e1; stroke-width: 1; }
       .line-dash { stroke: #e2e8f0; stroke-width: 1; stroke-dasharray: 4 4; }
       .text-sm { font-size: 12px; fill: #334155; }
@@ -387,51 +603,75 @@ export default function App() {
         const j = Math.max(idx1, idx2);
         const cx = startX + (i + j + 1) * 32;
         const cy = roofH - (j - i) * 32;
-        svg += `<text x="${cx}" y="${cy + 5}" text-anchor="middle" class="text-md">${rel.value}</text>`;
+        
+        let fillColor = "#ffffff";
+        let textColor = "#334155";
+        if (rel.value === 9) { fillColor = "#d1fae5"; textColor = "#065f46"; }
+        if (rel.value === 3) { fillColor = "#ecfdf5"; textColor = "#047857"; }
+        if (rel.value === -3) { fillColor = "#fff1f2"; textColor = "#be123c"; }
+        if (rel.value === -9) { fillColor = "#ffe4e6"; textColor = "#9f1239"; }
+
+        const points = `${cx},${cy - 32} ${cx + 32},${cy} ${cx},${cy + 32} ${cx - 32},${cy}`;
+        svg += `<polygon points="${points}" fill="${fillColor}" class="line" />`;
+        svg += `<text x="${cx}" y="${cy + 5}" text-anchor="middle" class="text-sm" font-weight="bold" fill="${textColor}">${escapeXml(getCrossRelSymbol(rel.value))}</text>`;
       }
     });
     svg += `</g>`;
 
-    // 2. Top-Left Header Cell
+    // 2. Top-Left Header Cells
     svg += `<g id="top-left-header">`;
-    svg += `<rect x="0" y="${roofH}" width="${startX}" height="${headerH}" class="bg-header line" />`;
-    svg += `<line x1="0" y1="${roofH}" x2="${startX}" y2="${roofH + headerH}" class="line" />`;
-    svg += `<text x="${startX - 15}" y="${roofH + 30}" text-anchor="end" class="text-md">CÓMO</text>`;
-    svg += `<text x="15" y="${roofH + headerH - 20}" class="text-md">QUÉ</text>`;
+    // Empty cell above diagonal
+    svg += `<rect x="0" y="${roofH}" width="${startX}" height="${dirH}" class="bg-header line" />`;
+    // Diagonal cell
+    svg += `<rect x="0" y="${roofH + dirH}" width="${reqW}" height="${mainHeaderH}" class="bg-header line" />`;
+    svg += `<line x1="0" y1="${roofH + dirH}" x2="${reqW}" y2="${roofH + dirH + mainHeaderH}" class="line" />`;
+    svg += `<text x="${reqW - 15}" y="${roofH + dirH + 30}" text-anchor="end" class="text-md">${t.como}</text>`;
+    svg += `<text x="15" y="${roofH + dirH + mainHeaderH - 20}" class="text-md">${t.que}</text>`;
+    // Importance header
+    svg += `<rect x="${reqW}" y="${roofH + dirH}" width="${impW}" height="${mainHeaderH}" class="bg-header line" />`;
+    svg += `<text x="${reqW + impW/2}" y="${roofH + dirH + mainHeaderH - 10}" text-anchor="middle" class="text-sm" font-weight="bold">${t.impHeader}</text>`;
     svg += `</g>`;
 
     // 3. Headers (CÓMO)
     svg += `<g id="headers">`;
     characteristics.forEach((char, i) => {
       const x = startX + i * charW;
-      svg += `<rect x="${x}" y="${roofH}" width="${charW}" height="${headerH}" class="bg-header line" />`;
+      // Direction row
+      svg += `<rect x="${x}" y="${roofH}" width="${charW}" height="${dirH}" class="bg-header line" />`;
       const dirSymbol = char.direction === 'max' ? '↑' : char.direction === 'min' ? '↓' : '◎';
       const dirColor = char.direction === 'max' ? '#059669' : char.direction === 'min' ? '#e11d48' : '#2563eb';
-      svg += `<text x="${x + charW/2}" y="${roofH + 30}" text-anchor="middle" class="text-md" fill="${dirColor}">${dirSymbol}</text>`;
-      svg += `<text x="${x + charW/2 + 4}" y="${roofH + headerH - 10}" transform="rotate(-90 ${x + charW/2 + 4} ${roofH + headerH - 10})" class="text-sm">${char.text}</text>`;
+      svg += `<text x="${x + charW/2}" y="${roofH + dirH/2 + 5}" text-anchor="middle" class="text-md" fill="${dirColor}">${dirSymbol}</text>`;
+      
+      // Text row
+      svg += `<rect x="${x}" y="${roofH + dirH}" width="${charW}" height="${mainHeaderH}" class="bg-header line" />`;
+      svg += `<text x="${x + charW/2 + 4}" y="${roofH + dirH + mainHeaderH - 10}" transform="rotate(-90 ${x + charW/2 + 4} ${roofH + dirH + mainHeaderH - 10})" class="text-sm">${escapeXml(char.text)}</text>`;
     });
     svg += `</g>`;
 
     // 4. Competitor Headers
     const compStartX = startX + numChars * charW;
     svg += `<g id="comp-headers">`;
-    svg += `<rect x="${compStartX}" y="${roofH}" width="${numComps * compW + profileW}" height="${headerH - 150}" class="bg-header line" />`;
-    svg += `<text x="${compStartX + (numComps * compW + profileW)/2}" y="${roofH + 30}" text-anchor="middle" class="text-md">Evaluación Competitiva</text>`;
+    // Row 1: Main Labels
+    svg += `<rect x="${compStartX}" y="${roofH}" width="${numComps * compW}" height="${dirH}" class="bg-header line" />`;
+    svg += `<text x="${compStartX + (numComps * compW)/2}" y="${roofH + dirH/2 + 5}" text-anchor="middle" class="text-sm" font-weight="bold">${t.compEval}</text>`;
     
+    svg += `<rect x="${compStartX + numComps * compW}" y="${roofH}" width="${profileW}" height="${dirH}" class="bg-header line" />`;
+    svg += `<text x="${compStartX + numComps * compW + profileW/2}" y="${roofH + dirH/2 + 5}" text-anchor="middle" class="text-sm" font-weight="bold">${t.compProfile}</text>`;
+
+    // Row 2: Competitor Names
     competitors.forEach((comp, i) => {
       const x = compStartX + i * compW;
-      svg += `<rect x="${x}" y="${roofH + 50}" width="${compW}" height="${headerH - 50}" class="bg-header line" />`;
-      svg += `<text x="${x + compW/2 + 4}" y="${roofH + headerH - 10}" transform="rotate(-90 ${x + compW/2 + 4} ${roofH + headerH - 10})" class="text-sm">${comp.name}</text>`;
+      svg += `<rect x="${x}" y="${roofH + dirH}" width="${compW}" height="${mainHeaderH}" class="bg-header line" />`;
+      svg += `<text x="${x + compW/2 + 4}" y="${roofH + dirH + mainHeaderH - 10}" transform="rotate(-90 ${x + compW/2 + 4} ${roofH + dirH + mainHeaderH - 10})" class="text-sm">${escapeXml(comp.name)}</text>`;
     });
 
-    // Profile Header
+    // Row 2: Profile Scale
     const profileStartX = compStartX + numComps * compW;
-    svg += `<rect x="${profileStartX}" y="${roofH + 50}" width="${profileW}" height="${headerH - 50}" class="bg-header line" />`;
-    svg += `<text x="${profileStartX + profileW/2}" y="${roofH + 75}" text-anchor="middle" class="text-sm">Perfil Competitivo</text>`;
+    svg += `<rect x="${profileStartX}" y="${roofH + dirH}" width="${profileW}" height="${mainHeaderH}" class="bg-header line" />`;
     // Scale 1-5
     for (let i = 1; i <= 5; i++) {
       const x = profileStartX + (i - 1) * 50 + 25;
-      svg += `<text x="${x}" y="${roofH + headerH - 10}" text-anchor="middle" class="text-xs font-bold">${i}</text>`;
+      svg += `<text x="${x}" y="${roofH + dirH + mainHeaderH - 10}" text-anchor="middle" class="text-xs font-bold">${i}</text>`;
     }
     svg += `</g>`;
 
@@ -442,11 +682,11 @@ export default function App() {
       
       // Req Text
       svg += `<rect x="0" y="${y}" width="${reqW}" height="${rowH}" class="bg-cell line" />`;
-      svg += `<text x="10" y="${y + rowH/2 + 4}" class="text-req">${req.text}</text>`;
+      svg += `<text x="10" y="${y + rowH/2 + 4}" class="text-req">${escapeXml(req.text)}</text>`;
       
       // Importance
       svg += `<rect x="${reqW}" y="${y}" width="${impW}" height="${rowH}" class="bg-cell line" />`;
-      svg += `<text x="${reqW + impW/2}" y="${y + rowH/2 + 4}" text-anchor="middle" class="text-md">${req.importance}</text>`;
+      svg += `<text x="${reqW + impW/2}" y="${y + rowH/2 + 4}" text-anchor="middle" class="text-md">${escapeXml(req.importance.toString())}</text>`;
 
       // Relationships
       characteristics.forEach((char, c) => {
@@ -454,7 +694,7 @@ export default function App() {
         svg += `<rect x="${x}" y="${y}" width="${charW}" height="${rowH}" class="bg-cell line" />`;
         const rel = relationships.find(rel => rel.reqId === req.id && rel.charId === char.id);
         if (rel && rel.value > 0) {
-          svg += `<text x="${x + charW/2}" y="${y + rowH/2 + 5}" text-anchor="middle" class="text-md">${rel.value}</text>`;
+          svg += `<text x="${x + charW/2}" y="${y + rowH/2 + 5}" text-anchor="middle" class="text-md" font-size="18">${escapeXml(getRelSymbol(rel.value, true))}</text>`;
         }
       });
 
@@ -472,7 +712,7 @@ export default function App() {
         }
         svg += `<rect x="${x}" y="${y}" width="${compW}" height="${rowH}" fill="${bgColor}" class="line" />`;
         if (ass && ass.value) {
-          svg += `<text x="${x + compW/2}" y="${y + rowH/2 + 5}" text-anchor="middle" class="text-md">${ass.value}</text>`;
+          svg += `<text x="${x + compW/2}" y="${y + rowH/2 + 5}" text-anchor="middle" class="text-md">${escapeXml(ass.value.toString())}</text>`;
         }
       });
 
@@ -517,7 +757,7 @@ export default function App() {
 
     // 7. Footer Rows
     const footerStartY = startY + matrixH;
-    const labels = ["Valores Objetivo", "Unidades de Medida", "Importancia Absoluta", "Importancia Relativa (%)"];
+    const labels = [t.target, t.unit, t.absWeight, `${t.relWeight} (%)`];
     
     labels.forEach((label, i) => {
       const y = footerStartY + i * rowH;
@@ -529,8 +769,8 @@ export default function App() {
         let content = "";
         let bgColor = "#ffffff";
 
-        if (i === 0) content = char.targetValue || "-";
-        else if (i === 1) content = char.unit || "-";
+        if (i === 0) content = escapeXml(char.targetValue || "-");
+        else if (i === 1) content = escapeXml(char.unit || "-");
         else if (i === 2) content = (calculatedImportance[char.id]?.absolute || 0).toString();
         else if (i === 3) {
           const rel = calculatedImportance[char.id]?.relative || 0;
@@ -581,57 +821,154 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 p-4 md:p-8 font-sans">
-      <div className="max-w-7xl mx-auto">
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-800">Matriz QFD</h1>
-            <p className="text-slate-500">Despliegue de la Función de Calidad (Casa de la Calidad)</p>
+    <div className="min-h-screen bg-slate-50 text-slate-900 p-4 md:p-6 font-sans">
+      <div className="max-w-[1600px] mx-auto">
+        <header className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-800 leading-tight">{t.title}</h1>
+              <p className="text-xs text-slate-500 font-medium tracking-wide uppercase">Quality Function Deployment</p>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap items-center justify-center md:justify-end gap-3">
+            {/* Language Selector */}
+            <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+              <button
+                onClick={() => setLanguage('es')}
+                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+                  language === 'es' 
+                    ? 'bg-white text-indigo-600 shadow-sm' 
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                ES
+              </button>
+              <button
+                onClick={() => setLanguage('en')}
+                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+                  language === 'en' 
+                    ? 'bg-white text-indigo-600 shadow-sm' 
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                EN
+              </button>
+            </div>
+
+            <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
+
+            {/* Export/Import Group */}
+            <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-lg border border-slate-200">
+              <button onClick={() => fileInputRef.current?.click()} title={t.importJson} className="p-2 text-slate-600 hover:bg-white hover:text-indigo-600 rounded-md transition-all hover:shadow-sm" aria-label={t.importJson}>
+                <Upload size={18} />
+              </button>
+              <button onClick={exportData} title={t.exportJson} className="p-2 text-slate-600 hover:bg-white hover:text-indigo-600 rounded-md transition-all hover:shadow-sm" aria-label={t.exportJson}>
+                <Download size={18} />
+              </button>
+              <div className="w-px h-4 bg-slate-200 mx-1"></div>
+              <button onClick={exportImage} title={t.exportPng} className="p-2 text-slate-600 hover:bg-white hover:text-blue-600 rounded-md transition-all hover:shadow-sm" aria-label={t.exportPng}>
+                <ImageIcon size={18} />
+              </button>
+              <button onClick={exportNativeSvg} title={t.exportSvgBtn} className="p-2 text-slate-600 hover:bg-white hover:text-emerald-600 rounded-md transition-all hover:shadow-sm" aria-label={t.exportSvgBtn}>
+                <FileCode size={18} />
+              </button>
+            </div>
+
+            <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
+
+            {/* Help Icon & Dropdown */}
+            <div className="relative" ref={helpRef}>
+              <button 
+                onClick={() => setShowHelp(!showHelp)}
+                className={`p-2 rounded-full transition-all shadow-sm border ${
+                  showHelp 
+                    ? 'bg-indigo-600 text-white border-indigo-600' 
+                    : 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100'
+                }`}
+                title={t.howToUse}
+              >
+                <HelpCircle size={20} />
+              </button>
+              
+              {showHelp && (
+                <div className="absolute right-0 mt-3 w-80 md:w-96 bg-white rounded-xl shadow-2xl border border-slate-200 z-[100] p-5 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="flex items-center gap-2 mb-4 text-indigo-600 border-b border-slate-100 pb-3">
+                    <Info size={20} />
+                    <h3 className="font-bold text-lg">{t.howToUse}</h3>
+                  </div>
+                  <div className="max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                    <ul className="list-disc pl-5 space-y-3 text-sm text-slate-600 mb-5">
+                      <li><strong className="text-slate-800">{t.editEverything}</strong></li>
+                      <li>{t.queDesc}</li>
+                      <li>{t.comoDesc}</li>
+                      <li>{t.relDesc}</li>
+                      <li>{t.roofDesc}</li>
+                      <li>{t.dirDesc}</li>
+                      <li>{t.compDesc}</li>
+                      <li>{t.impDesc}</li>
+                    </ul>
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-xs text-blue-800 leading-relaxed">
+                      <div className="flex gap-2 items-start">
+                        <span className="text-base leading-none">💡</span>
+                        <p><strong>{t.tip}:</strong> {t.tipDesc}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 col-span-2 flex flex-wrap gap-6 items-start">
-            <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-4 mb-4">
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-8 items-center justify-between">
+            <div className="flex flex-wrap gap-8 items-center">
               <div>
-                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Relaciones (QUÉ vs CÓMO)</div>
-                <div className="flex gap-4">
-                  <div className="flex items-center gap-1"><span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">9</span> Fuerte</div>
-                  <div className="flex items-center gap-1"><span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">3</span> Moderada</div>
-                  <div className="flex items-center gap-1"><span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">1</span> Débil</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">{t.relWeight} (QUÉ vs CÓMO)</div>
+                <div className="flex gap-4 text-xs">
+                  <div className="flex items-center gap-1.5"><span className="font-bold text-slate-800 bg-slate-100 w-6 h-6 flex items-center justify-center rounded">⏺</span> <span className="text-slate-600">{t.strong} (9)</span></div>
+                  <div className="flex items-center gap-1.5"><span className="font-bold text-slate-800 bg-slate-100 w-6 h-6 flex items-center justify-center rounded">○</span> <span className="text-slate-600">{t.moderate} (3)</span></div>
+                  <div className="flex items-center gap-1.5"><span className="font-bold text-slate-800 bg-slate-100 w-6 h-6 flex items-center justify-center rounded">△</span> <span className="text-slate-600">{t.weak} (1)</span></div>
                 </div>
               </div>
+              <div className="w-px h-8 bg-slate-100 hidden md:block"></div>
               <div>
-                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Techo (CÓMO vs CÓMO)</div>
-                <div className="flex gap-4 flex-wrap">
-                  <div className="flex items-center gap-1"><span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">9</span> Fuerte Positiva</div>
-                  <div className="flex items-center gap-1"><span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">3</span> Positiva</div>
-                  <div className="flex items-center gap-1"><span className="font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded">-3</span> Negativa</div>
-                  <div className="flex items-center gap-1"><span className="font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded">-9</span> Fuerte Negativa</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">{language === 'es' ? 'Techo' : 'Roof'} (CÓMO vs CÓMO)</div>
+                <div className="flex gap-3 flex-wrap text-xs">
+                  <div className="flex items-center gap-1.5"><span className="font-bold text-emerald-700 bg-emerald-50 w-7 h-6 flex items-center justify-center rounded">++</span> <span className="text-slate-600">{t.strongPos}</span></div>
+                  <div className="flex items-center gap-1.5"><span className="font-bold text-emerald-600 bg-emerald-50 w-6 h-6 flex items-center justify-center rounded">+</span> <span className="text-slate-600">{t.pos}</span></div>
+                  <div className="flex items-center gap-1.5"><span className="font-bold text-rose-600 bg-rose-50 w-6 h-6 flex items-center justify-center rounded">-</span> <span className="text-slate-600">{t.neg}</span></div>
+                  <div className="flex items-center gap-1.5"><span className="font-bold text-rose-700 bg-rose-50 w-7 h-6 flex items-center justify-center rounded">--</span> <span className="text-slate-600">{t.strongNeg}</span></div>
+                </div>
+              </div>
+              <div className="w-px h-8 bg-slate-100 hidden md:block"></div>
+              <div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">{t.direction}</div>
+                <div className="flex gap-4 text-xs">
+                  <div className="flex items-center gap-1.5"><ArrowUp size={14} className="text-emerald-600" /> <span className="text-slate-600">{t.maximize}</span></div>
+                  <div className="flex items-center gap-1.5"><ArrowDown size={14} className="text-rose-600" /> <span className="text-slate-600">{t.minimize}</span></div>
+                  <div className="flex items-center gap-1.5"><Target size={14} className="text-blue-600" /> <span className="text-slate-600">{t.targetLabel}</span></div>
                 </div>
               </div>
             </div>
-            <div className="w-px h-20 bg-slate-200 hidden md:block"></div>
-            <div>
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Dirección de Mejora</div>
-              <div className="flex gap-4">
-                <div className="flex items-center gap-1"><ArrowUp size={16} className="text-emerald-600" /> Maximizar</div>
-                <div className="flex items-center gap-1"><ArrowDown size={16} className="text-rose-600" /> Minimizar</div>
-                <div className="flex items-center gap-1"><Target size={16} className="text-blue-600" /> Objetivo</div>
-              </div>
-            </div>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-center gap-2">
-            <button onClick={addRequirement} className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors text-sm font-medium">
-              <Plus size={16} /> Requerimiento (QUÉ)
-            </button>
-            <button onClick={addCharacteristic} className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg transition-colors text-sm font-medium">
-              <Plus size={16} /> Característica (CÓMO)
-            </button>
-            <button onClick={addCompetitor} className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg transition-colors text-sm font-medium">
-              <Plus size={16} /> Competidor
-            </button>
+        </div>
+
+        {/* Construction Toolbar */}
+        <div className="flex items-center gap-2 mb-2 bg-slate-800 p-1.5 rounded-lg shadow-md border border-slate-700">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 border-r border-slate-600 mr-1">
+            {language === 'es' ? 'Construcción' : 'Construction'}
           </div>
+          <button onClick={addRequirement} className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white hover:bg-blue-500 rounded-md transition-all text-xs font-bold shadow-sm">
+            <Plus size={14} /> {t.que}
+          </button>
+          <button onClick={addCharacteristic} className="flex items-center gap-1.5 px-3 py-1 bg-emerald-600 text-white hover:bg-emerald-500 rounded-md transition-all text-xs font-bold shadow-sm">
+            <Plus size={14} /> {t.como}
+          </button>
+          <button onClick={addCompetitor} className="flex items-center gap-1.5 px-3 py-1 bg-purple-600 text-white hover:bg-purple-500 rounded-md transition-all text-xs font-bold shadow-sm">
+            <Plus size={14} /> {t.addComp}
+          </button>
         </div>
 
 
@@ -691,8 +1028,8 @@ export default function App() {
                                   className="cursor-pointer hover:opacity-80 transition-opacity"
                                 >
                                   <polygon points={points} fill={fillColor} stroke="#cbd5e1" strokeWidth="1" />
-                                  <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" fill={textColor} fontSize="13" fontWeight="bold">
-                                    {val !== 0 ? val : ''}
+                                  <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" fill={textColor} fontSize="14" fontWeight="bold">
+                                    {getCrossRelSymbol(val)}
                                   </text>
                                 </g>
                               );
@@ -744,10 +1081,10 @@ export default function App() {
                     </th>
                   )})}
                   <th colSpan={competitors.length} className="border-b border-r border-slate-200 p-2 bg-slate-50 text-center font-semibold text-slate-600">
-                    Evaluación Competitiva (1-5)
+                    {t.compEval}
                   </th>
                   <th className="border-b border-slate-200 p-2 bg-slate-50 text-center font-semibold text-slate-600 w-[250px]">
-                    Perfil Competitivo
+                    {t.compProfile}
                   </th>
                 </tr>
                 <tr>
@@ -756,10 +1093,10 @@ export default function App() {
                       <line x1="0" y1="0" x2="100%" y2="100%" stroke="#e2e8f0" strokeWidth="1" />
                     </svg>
                     <div className="absolute top-4 right-4 text-right font-semibold text-slate-600">
-                      Requerimientos Técnicos<br />(CÓMO)
+                      {t.charHeader}<br />({t.como})
                     </div>
                     <div className="absolute bottom-4 left-4 text-left font-semibold text-slate-600">
-                      Requerimientos del Cliente<br />(QUÉ)
+                      {t.reqHeader}<br />({t.que})
                     </div>
                   </th>
                   <th className="border-b border-r border-slate-200 p-3 bg-slate-50 text-center w-20 font-semibold text-slate-700 align-bottom" title="Importancia (1-5)">Imp.</th>
@@ -853,8 +1190,8 @@ export default function App() {
                           style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}
                           onClick={() => cycleRelationship(req.id, c.id)}
                         >
-                          <div className="w-full h-10 flex items-center justify-center font-bold select-none text-slate-800">
-                            {val > 0 ? val : ''}
+                          <div className="w-full h-10 flex items-center justify-center font-bold select-none text-slate-800 text-lg">
+                            {getRelSymbol(val)}
                           </div>
                         </td>
                       );
@@ -923,7 +1260,7 @@ export default function App() {
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan={2} className="border-b border-r border-slate-200 p-3 bg-slate-50 text-right font-semibold text-slate-600">Valores Objetivo</td>
+                  <td colSpan={2} className="border-b border-r border-slate-200 p-3 bg-slate-50 text-right font-semibold text-slate-600">{t.target}</td>
                   {characteristics.map(c => (
                     <td key={`target-${c.id}`} className="border-b border-r border-slate-200 p-2 bg-white text-center" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
                       <input
@@ -937,7 +1274,7 @@ export default function App() {
                   <td colSpan={competitors.length + 1} className="border-b border-slate-200 bg-slate-50"></td>
                 </tr>
                 <tr>
-                  <td colSpan={2} className="border-b border-r border-slate-200 p-3 bg-slate-50 text-right font-semibold text-slate-600">Unidades de Medida</td>
+                  <td colSpan={2} className="border-b border-r border-slate-200 p-3 bg-slate-50 text-right font-semibold text-slate-600">{t.unit}</td>
                   {characteristics.map(c => (
                     <td key={`unit-${c.id}`} className="border-b border-r border-slate-200 p-2 bg-white text-center" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
                       <input
@@ -951,7 +1288,7 @@ export default function App() {
                   <td colSpan={competitors.length + 1} className="border-b border-slate-200 bg-slate-50"></td>
                 </tr>
                 <tr>
-                  <td colSpan={2} className="border-b border-r border-slate-200 p-3 bg-slate-100 text-right font-bold text-slate-700">Importancia Absoluta</td>
+                  <td colSpan={2} className="border-b border-r border-slate-200 p-3 bg-slate-100 text-right font-bold text-slate-700">{t.absWeight}</td>
                   {characteristics.map(c => (
                     <td key={`abs-${c.id}`} className="border-b border-r border-slate-200 p-3 text-center font-bold text-slate-800 bg-slate-50" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
                       {calculatedImportance[c.id]?.absolute || 0}
@@ -960,7 +1297,7 @@ export default function App() {
                   <td colSpan={competitors.length + 1} className="border-b border-slate-200 bg-slate-100"></td>
                 </tr>
                 <tr>
-                  <td colSpan={2} className="border-r border-slate-200 p-3 bg-slate-100 text-right font-bold text-slate-700">Importancia Relativa (%)</td>
+                  <td colSpan={2} className="border-r border-slate-200 p-3 bg-slate-100 text-right font-bold text-slate-700">{t.relWeight} (%)</td>
                   {characteristics.map(c => {
                     const relValue = calculatedImportance[c.id]?.relative || 0;
                     return (
@@ -986,54 +1323,17 @@ export default function App() {
           </div>
         </div>
         
-        <div className="mt-6 flex flex-wrap justify-end gap-3">
+        <div className="hidden">
           <input type="file" accept=".json" className="hidden" ref={fileInputRef} onChange={importData} />
-          <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 shadow-sm transition-colors">
-            <Upload size={18} /> Cargar JSON
-          </button>
-          <button onClick={exportData} className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 shadow-sm transition-colors">
-            <Download size={18} /> Descargar JSON
-          </button>
-          <button onClick={exportImage} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors">
-            <ImageIcon size={18} /> Descargar PNG (Alta Res)
-          </button>
-          <button onClick={exportNativeSvg} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 shadow-sm transition-colors">
-            <FileCode size={18} /> Descargar SVG Nativo
-          </button>
-        </div>
-
-        <div className="mt-8 bg-blue-50 rounded-xl p-6 border border-blue-100 flex gap-4 items-start">
-          <Info className="text-blue-500 shrink-0 mt-1" />
-          <div className="text-sm text-blue-900 w-full">
-            <h3 className="font-bold text-base mb-3">¿Cómo usar esta matriz QFD?</h3>
-            
-            <ul className="list-disc pl-5 space-y-2 mb-4">
-              <li><strong>¡Todo es editable!:</strong> Haz clic o toca directamente sobre cualquier texto (requerimientos, características, competidores) o número para modificarlo. Los datos actuales son solo un ejemplo.</li>
-              <li><strong>QUÉ (Requerimientos del Cliente):</strong> Lista lo que el cliente desea. Asigna una importancia del 1 al 5.</li>
-              <li><strong>CÓMO (Requerimientos Técnicos):</strong> Lista cómo vas a satisfacer esos requerimientos mediante especificaciones técnicas.</li>
-              <li><strong>Relaciones:</strong> Haz clic en las celdas centrales para establecer la correlación. Los valores rotan entre Fuerte (9), Moderada (3), Débil (1) y Vacío.</li>
-              <li><strong>Techo:</strong> Establece las correlaciones cruzadas entre las propias características técnicas (CÓMO vs CÓMO).</li>
-              <li><strong>Dirección de Mejora:</strong> Haz clic en los íconos superiores para indicar si la característica técnica debe maximizarse (↑), minimizarse (↓) o alcanzar un objetivo específico (◎).</li>
-              <li><strong>Evaluación Competitiva:</strong> Califica del 1 al 5 cómo se percibe tu producto frente a la competencia para cada requerimiento.</li>
-            </ul>
-
-            <div className="bg-white/60 p-4 rounded-lg border border-blue-200 shadow-sm flex gap-3 items-start">
-              <span className="text-xl leading-none">💡</span>
-              <p className="leading-relaxed">
-                <strong>Tip:</strong> Cuando trabajes en tu matriz, puedes descargar la versión <strong>.json</strong>. Cuando quieras volver a trabajar sobre ella o compartirla con un colega, ¡simplemente debes cargarla y seguir editando! Descarga la <strong>imagen PNG de Alta Resolución</strong> o el <strong>SVG Nativo</strong> para usarla en la documentación de tu proyecto o en GitHub sin que se pixele.
-              </p>
-            </div>
-          </div>
         </div>
 
         <footer className="mt-12 mb-8 flex flex-col items-center justify-center text-slate-500 text-sm space-y-3">
-          <p>Desarrollado por el <strong>Prof. Oscar Campo, PhD</strong> (<a href="mailto:oicampo@uao.edu.co" className="hover:text-slate-700 underline">oicampo@uao.edu.co</a>).</p>
+          <p>{t.developedBy} <strong>Prof. Oscar Campo, PhD</strong> (<a href="mailto:oicampo@uao.edu.co" className="hover:text-slate-700 underline">oicampo@uao.edu.co</a>).</p>
           <a href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="license noopener noreferrer" className="hover:opacity-80 transition-opacity">
             <img alt="Licencia Creative Commons" style={{ borderWidth: 0 }} src="https://licensebuttons.net/l/by-nc/4.0/88x31.png" referrerPolicy="no-referrer" />
           </a>
           <p className="text-xs text-center max-w-lg">
-            Esta obra está bajo una <a href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="license noopener noreferrer" className="underline hover:text-slate-700">Licencia Creative Commons Atribución-NoComercial 4.0 Internacional</a>.<br/>
-            Es de uso libre mencionando al autor y no se permite su comercialización.
+            {t.license}
           </p>
         </footer>
       </div>
@@ -1044,26 +1344,26 @@ export default function App() {
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
             <div className="flex items-center gap-3 text-rose-600 mb-4">
               <AlertTriangle size={24} />
-              <h3 className="text-lg font-bold text-slate-900">Confirmar eliminación</h3>
+              <h3 className="text-lg font-bold text-slate-900">{t.confirmDelete}</h3>
             </div>
             <p className="text-slate-600 mb-4">
-              ¿Estás seguro de que deseas eliminar el {itemToDelete.type === 'req' ? 'requerimiento' : 'CÓMO'} <strong>"{itemToDelete.name}"</strong>?
+              {t.deleteMsg} {itemToDelete.type === 'req' ? (language === 'es' ? 'el requerimiento' : 'the requirement') : (language === 'es' ? 'el CÓMO' : 'the HOW')} <strong>"{itemToDelete.name}"</strong>?
             </p>
             <div className="bg-rose-50 text-rose-800 text-sm p-4 rounded-lg mb-6 border border-rose-100">
-              <strong>Advertencia:</strong> Esta acción eliminará toda la {itemToDelete.type === 'req' ? 'fila' : 'columna'} y <strong>todas las relaciones</strong> asociadas a este elemento{itemToDelete.type === 'char' ? ', incluyendo las relaciones cruzadas en el techo' : ''}. Esta acción no se puede deshacer.
+              <strong>{t.warning}:</strong> {t.deleteWarning}
             </div>
             <div className="flex justify-end gap-3">
               <button 
                 onClick={() => setItemToDelete(null)}
                 className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors"
               >
-                Cancelar
+                {t.cancel}
               </button>
               <button 
                 onClick={confirmDelete}
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-medium transition-colors shadow-sm"
               >
-                Sí, eliminar
+                {t.yesDelete}
               </button>
             </div>
           </div>
