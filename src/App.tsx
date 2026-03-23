@@ -54,7 +54,7 @@ const translations = {
     reqHeader: "Requerimientos del Cliente",
     impHeader: "Imp.",
     charHeader: "Características Técnicas",
-    compEval: "Evaluación Competitiva (1-5)",
+    compEval: "Evaluación Competitiva",
     compProfile: "Perfil Competitivo",
     que: "QUÉ",
     como: "CÓMO",
@@ -967,7 +967,7 @@ export default function App() {
             <Plus size={14} /> {t.como}
           </button>
           <button onClick={addCompetitor} className="flex items-center gap-1.5 px-3 py-1 bg-purple-600 text-white hover:bg-purple-500 rounded-md transition-all text-xs font-bold shadow-sm">
-            <Plus size={14} /> {t.addComp}
+            <Plus size={14} /> {"Añadir" t.addComp}
           </button>
         </div>
 
