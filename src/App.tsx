@@ -855,7 +855,7 @@ BENCHMARKING,Comp A,2.7,240,10,,,
       // Marker
       const mx = x + compW/2;
       const my = roofH + dirH + 15;
-      if (comp.id === 'comp1') {
+      if (i === 0) {
         svg += `<polygon points="${mx},${my-5} ${mx+5},${my+5} ${mx-5},${my+5}" fill="${color}" />`;
       } else {
         svg += `<circle cx="${mx}" cy="${my}" r="4" fill="${color}" />`;
@@ -874,7 +874,7 @@ BENCHMARKING,Comp A,2.7,240,10,,,
     competitors.forEach((comp, i) => {
       const lx = profileStartX + (i * legendItemW) + 15;
       const color = getCompColor(i);
-      if (comp.id === 'comp1') {
+      if (i === 0) {
         svg += `<polygon points="${lx},${legendY-4} ${lx+4},${legendY+4} ${lx-4},${legendY+4}" fill="${color}" />`;
       } else {
         svg += `<circle cx="${lx}" cy="${legendY}" r="4" fill="${color}" />`;
@@ -960,7 +960,7 @@ BENCHMARKING,Comp A,2.7,240,10,,,
         const [xStr, yStr] = p.split(',');
         const x = parseFloat(xStr);
         const y = parseFloat(yStr);
-        if (comp.id === 'comp1') {
+        if (cIdx === 0) {
           svg += `<polygon points="${x},${y-6} ${x+6},${y+5} ${x-6},${y+5}" fill="${getCompColor(cIdx)}" />`;
         } else {
           svg += `<circle cx="${x}" cy="${y}" r="5" fill="${getCompColor(cIdx)}" />`;
@@ -1690,7 +1690,7 @@ BENCHMARKING,Comp A,2.7,240,10,,,
                     <th key={`comp-${comp.id}`} className="border-b border-r border-slate-200 p-2 bg-slate-50 text-center w-12 align-bottom group relative">
                       <div className="flex flex-col items-center justify-end h-full w-full mx-auto">
                         <div className="flex items-center gap-1 mb-1">
-                          <div className={`w-2 h-2 ${comp.id === 'comp1' ? 'clip-triangle' : 'rounded-full'}`} style={{ backgroundColor: getCompColor(idx) }}></div>
+                          <div className={`w-2 h-2 ${idx === 0 ? 'clip-triangle' : 'rounded-full'}`} style={{ backgroundColor: getCompColor(idx) }}></div>
                         </div>
                         <input
                           value={comp.name}
@@ -1708,7 +1708,7 @@ BENCHMARKING,Comp A,2.7,240,10,,,
                       <div className="flex flex-wrap gap-2 p-2 text-[10px] text-slate-500 font-normal justify-center border-b border-slate-200">
                         {competitors.map((comp, idx) => (
                           <div key={comp.id} className="flex items-center gap-1">
-                            <div className={`w-2 h-2 ${comp.id === 'comp1' ? 'clip-triangle' : 'rounded-full'}`} style={{ backgroundColor: getCompColor(idx) }}></div>
+                            <div className={`w-2 h-2 ${idx === 0 ? 'clip-triangle' : 'rounded-full'}`} style={{ backgroundColor: getCompColor(idx) }}></div>
                             <span className="truncate max-w-[60px]">{comp.name}</span>
                           </div>
                         ))}
@@ -1814,7 +1814,7 @@ BENCHMARKING,Comp A,2.7,240,10,,,
                                   const x = 25 + (ass.value - 1) * 50;
                                   const y = rIdx * 48 + 24;
                                   
-                                  if (comp.id === 'comp1') {
+                                  if (cIdx === 0) {
                                     return <polygon key={`dot-${comp.id}-${r.id}`} points={`${x},${y-6} ${x+6},${y+5} ${x-6},${y+5}`} fill={getCompColor(cIdx)} />
                                   }
                                   return <circle key={`dot-${comp.id}-${r.id}`} cx={x} cy={y} r="5" fill={getCompColor(cIdx)} />
