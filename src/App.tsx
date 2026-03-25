@@ -128,7 +128,8 @@ const translations = {
     csvConfig: "CONFIG: Metas técnicas (Direction, Unit, Target).",
     csvRel: "RELATIONS: Requerimientos, Importance y evaluación competitiva.",
     csvRoof: "ROOF: Correlaciones cruzadas entre características.",
-    csvBench: "BENCHMARKING: Valores reales de la competencia.",
+    csvBench: "BENCHMARKING: Dificultad técnica (Dif.) y valores reales de la competencia.",
+    csvBenchDetail: "La primera fila de esta sección DEBE ser 'Dif.' para la dificultad técnica (1-5):",
     csvRoofDetail: "IMPORTANTE: En la sección ROOF, usa \"x\" en las correlaciones entre características técnicas iguales:",
     csvRoofRef: "El importador es flexible: puedes usar la matriz triangular superior (recomendado), inferior o ambas. El sistema detectará y evitará duplicados automáticamente. No olvides marcar la diagonal con 'x'.",
     csvSymbols: "Símbolos",
@@ -207,7 +208,8 @@ const translations = {
     csvConfig: "CONFIG: Technical goals (Direction, Unit, Target).",
     csvRel: "RELATIONS: Requirements, Importance, and competitive evaluation.",
     csvRoof: "ROOF: Cross-correlations between characteristics.",
-    csvBench: "BENCHMARKING: Actual competitor values.",
+    csvBench: "BENCHMARKING: Technical difficulty (Dif.) and actual competitor values.",
+    csvBenchDetail: "The first row of this section MUST be 'Dif.' for technical difficulty (1-5):",
     csvRoofDetail: "IMPORTANT: In the ROOF section, use \"x\" for correlations between identical technical characteristics:",
     csvRoofRef: "The importer is flexible: you can use the upper triangle (recommended), lower triangle, or both. The system will automatically detect and avoid duplicates. Don't forget to mark the diagonal with 'x'.",
     csvSymbols: "Symbols",
@@ -1402,7 +1404,7 @@ BENCHMARKING,Comp A,2.7,240,10,,,
                                 </tr>
                               </thead>
                               <tbody>
-                                {getCSVData().slice(1, 12).map((row, i) => (
+                                {getCSVData().slice(1, 20).map((row, i) => (
                                   <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}>
                                     {row.map((cell, j) => (
                                       <td key={j} className="p-1.5 border-b border-r border-slate-200 text-slate-600 whitespace-nowrap">{cell}</td>
@@ -1476,7 +1478,40 @@ BENCHMARKING,Comp A,2.7,240,10,,,
                             </div>
                             <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                               <div className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-1">BENCHMARKING</div>
-                              <p className="text-xs text-slate-600">{t.csvBench}</p>
+                              <p className="text-xs text-slate-600 mb-3">{t.csvBench}</p>
+
+                              <div className="bg-white border border-slate-200 rounded p-2">
+                                <p className="text-[10px] text-slate-500 mb-2 font-medium">{t.csvBenchDetail}</p>
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-[9px] text-left border-collapse">
+                                    <thead>
+                                      <tr className="bg-slate-50">
+                                        <th className="p-1 border border-slate-200 font-bold">Section</th>
+                                        <th className="p-1 border border-slate-200 font-bold">Label</th>
+                                        <th className="p-1 border border-slate-200 font-bold">Peso</th>
+                                        <th className="p-1 border border-slate-200 font-bold">Resistencia</th>
+                                        <th className="p-1 border border-slate-200 font-bold">...</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      <tr>
+                                        <td className="p-1 border border-slate-200">BENCHMARKING</td>
+                                        <td className="p-1 border border-slate-200 font-medium">Dif.</td>
+                                        <td className="p-1 border border-slate-200 text-center">1</td>
+                                        <td className="p-1 border border-slate-200 text-center">3</td>
+                                        <td className="p-1 border border-slate-200 text-center">...</td>
+                                      </tr>
+                                      <tr>
+                                        <td className="p-1 border border-slate-200">BENCHMARKING</td>
+                                        <td className="p-1 border border-slate-200 font-medium">Nuestro</td>
+                                        <td className="p-1 border border-slate-200 text-center">2.2</td>
+                                        <td className="p-1 border border-slate-200 text-center">280</td>
+                                        <td className="p-1 border border-slate-200 text-center">...</td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
                             </div>
                           </div>
 
