@@ -14,6 +14,7 @@ type Characteristic = {
   direction: 'max' | 'min' | 'target';
   unit: string;
   targetValue: string;
+  difficulty: number;
 };
 
 type Relationship = {
@@ -93,7 +94,7 @@ const translations = {
     editEverything: "¡Todo es editable!: Haz clic o toca directamente sobre cualquier texto o número para modificarlo.",
     queDesc: "QUÉ (Requerimientos del Cliente): Lista lo que el cliente desea. Asigna una importancia del 1 al 5.",
     comoDesc: "CÓMO (Requerimientos Técnicos): Lista cómo vas a satisfacer esos requerimientos mediante especificaciones técnicas.",
-    relDesc: "Relaciones: Haz clic en las celdas centrales para establecer la correlación (⏺=9, ○=3, △=1).",
+    relDesc: "Relaciones: Haz clic en las celdas centrales para establecer la correlación (●=9, ○=3, △=1).",
     roofDesc: "Techo: Establece las correlaciones cruzadas entre las características técnicas (++, +, -, --).",
     dirDesc: "Dirección de Mejora: Indica si la característica debe maximizarse (↑), minimizarse (↓) o alcanzar un objetivo (◎).",
     compDesc: "Evaluación Competitiva: Compara tu desempeño con la competencia (1-5) para visualizar el Perfil Competitivo.",
@@ -111,6 +112,7 @@ const translations = {
     minimize: "Minimizar",
     targetLabel: "Objetivo",
     techBenchmark: "Benchmarking Técnico (Valores Reales)",
+    techDifficulty: "Dif. (Dificultad Técnica)",
     warning: "Advertencia",
     deleteWarning: "Esta acción eliminará toda la fila/columna y todas las relaciones asociadas. No se puede deshacer.",
     yesDelete: "Sí, eliminar",
@@ -180,7 +182,7 @@ const translations = {
     editEverything: "Everything is editable!: Click or tap directly on any text or number to modify it.",
     queDesc: "WHAT (Customer Requirements): List what the customer wants. Assign an importance from 1 to 5.",
     comoDesc: "HOW (Technical Requirements): List how you will satisfy those requirements through technical specifications.",
-    relDesc: "Relationships: Click on the central cells to establish correlation (⏺=9, ○=3, △=1).",
+    relDesc: "Relationships: Click on the central cells to establish correlation (●=9, ○=3, △=1).",
     roofDesc: "Roof: Establish cross-correlations between technical characteristics (++, +, -, --).",
     dirDesc: "Direction of Improvement: Indicate if the characteristic should be maximized (↑), minimized (↓) or reach a target (◎).",
     compDesc: "Competitive Evaluation: Compare your performance with the competition (1-5) to visualize the Competitive Profile.",
@@ -198,6 +200,7 @@ const translations = {
     minimize: "Minimize",
     targetLabel: "Target",
     techBenchmark: "Technical Benchmarking (Actual Values)",
+    techDifficulty: "Diff. (Technical Difficulty)",
     csvGuide: "CSV Guide",
     generalHelp: "General Help",
     csvIntro: "Structure the CSV file with these 4 sections:",
@@ -253,9 +256,9 @@ export default function App() {
   ]);
 
   const [characteristics, setCharacteristics] = useState<Characteristic[]>([
-    { id: 'c1', text: t.weight, direction: 'min', unit: 'kg', targetValue: '< 2.5' },
-    { id: 'c2', text: t.resistance, direction: 'max', unit: 'MPa', targetValue: '> 250' },
-    { id: 'c3', text: t.cost, direction: 'min', unit: 'USD', targetValue: '< 15' },
+    { id: 'c1', text: t.weight, direction: 'min', unit: 'kg', targetValue: '< 2.5', difficulty: 1 },
+    { id: 'c2', text: t.resistance, direction: 'max', unit: 'MPa', targetValue: '> 250', difficulty: 3 },
+    { id: 'c3', text: t.cost, direction: 'min', unit: 'USD', targetValue: '< 15', difficulty: 3 },
   ]);
 
   const [relationships, setRelationships] = useState<Relationship[]>([
@@ -370,7 +373,7 @@ export default function App() {
   };
 
   const addCharacteristic = () => {
-    setCharacteristics([...characteristics, { id: generateId(), text: t.newChar, direction: 'max', unit: '-', targetValue: '' }]);
+    setCharacteristics([...characteristics, { id: generateId(), text: t.newChar, direction: 'max', unit: '-', targetValue: '', difficulty: 1 }]);
   };
 
   const updateCharacteristic = (id: string, field: keyof Characteristic, value: any) => {
@@ -620,6 +623,9 @@ export default function App() {
     });
     
     // BENCHMARKING (Technical Benchmarks)
+    const difficulties = characteristics.map(c => c.difficulty?.toString() || '1');
+    rows.push(['BENCHMARKING', 'Dif.', ...difficulties, '', ...compNames.map(() => '')]);
+
     competitors.forEach(comp => {
       const benchValues = characteristics.map(char => {
         const bench = techBenchmarks.find(b => b.charId === char.id && b.compId === comp.id);
@@ -1096,7 +1102,8 @@ BENCHMARKING,Comp A,2.7,240,10,,,
           text: name,
           direction: 'max',
           unit: '',
-          targetValue: ''
+          targetValue: '',
+          difficulty: 1
         }));
 
         const newComps: Competitor[] = compNames.map(name => ({
@@ -1174,13 +1181,19 @@ BENCHMARKING,Comp A,2.7,240,10,,,
               });
             }
           } else if (section === 'BENCHMARKING') {
-            const compIdx = newComps.findIndex(c => c.name === label);
-            if (compIdx !== -1) {
+            if (label === 'Dif.' || label === 'Dificultad' || label === 'Diff.' || label === 'Difficulty') {
               parts.slice(2, 2 + newChars.length).forEach((val, i) => {
-                if (val) {
-                  newTechBenchmarks.push({ charId: newChars[i].id, compId: newComps[compIdx].id, value: val });
-                }
+                newChars[i].difficulty = parseInt(val) || 1;
               });
+            } else {
+              const compIdx = newComps.findIndex(c => c.name === label);
+              if (compIdx !== -1) {
+                parts.slice(2, 2 + newChars.length).forEach((val, i) => {
+                  if (val) {
+                    newTechBenchmarks.push({ charId: newChars[i].id, compId: newComps[compIdx].id, value: val });
+                  }
+                });
+              }
             }
           }
         });
@@ -1499,7 +1512,7 @@ BENCHMARKING,Comp A,2.7,240,10,,,
               <div>
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">{t.relWeight} ({t.como} vs {t.que})</div>
                 <div className="flex gap-4 text-xs">
-                  <div className="flex items-center gap-1.5"><span className="font-bold text-slate-800 bg-slate-100 w-6 h-6 flex items-center justify-center rounded">⏺</span> <span className="text-slate-600">{t.strong} (9)</span></div>
+                  <div className="flex items-center gap-1.5"><span className="font-bold text-slate-800 bg-slate-100 w-6 h-6 flex items-center justify-center rounded">●</span> <span className="text-slate-600">{t.strong} (9)</span></div>
                   <div className="flex items-center gap-1.5"><span className="font-bold text-slate-800 bg-slate-100 w-6 h-6 flex items-center justify-center rounded">○</span> <span className="text-slate-600">{t.moderate} (3)</span></div>
                   <div className="flex items-center gap-1.5"><span className="font-bold text-slate-800 bg-slate-100 w-6 h-6 flex items-center justify-center rounded">△</span> <span className="text-slate-600">{t.weak} (1)</span></div>
                 </div>
@@ -1863,6 +1876,24 @@ BENCHMARKING,Comp A,2.7,240,10,,,
                   <td colSpan={characteristics.length + competitors.length + 3} className="bg-slate-200 p-1 text-[10px] font-bold text-slate-600 uppercase tracking-wider text-center">
                     {t.techBenchmark}
                   </td>
+                </tr>
+                <tr>
+                  <td colSpan={2} className="border-b border-r border-slate-200 p-2 bg-slate-50 text-right text-xs font-bold text-slate-600">
+                    {t.techDifficulty}
+                  </td>
+                  {characteristics.map(c => (
+                    <td key={`diff-${c.id}`} className="border-b border-r border-slate-200 p-1 bg-white text-center">
+                      <input
+                        type="number"
+                        min="1"
+                        max="5"
+                        value={c.difficulty || 1}
+                        onChange={e => updateCharacteristic(c.id, 'difficulty', parseInt(e.target.value) || 1)}
+                        className="w-full bg-transparent focus:outline-none text-center text-xs font-bold text-slate-700"
+                      />
+                    </td>
+                  ))}
+                  <td colSpan={competitors.length + 1} className="border-b border-slate-200 bg-slate-50"></td>
                 </tr>
                 {competitors.map((comp, cIdx) => (
                   <tr key={`tech-bench-${comp.id}`}>
